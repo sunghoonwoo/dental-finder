@@ -216,14 +216,25 @@ export default function ClinicsPage() {
 
       {/* 위치 오류 */}
       {tab === "nearby" && geoError && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-4 text-sm text-yellow-800">
-          {geoError}
-          <button
-            onClick={() => setTab("region")}
-            className="ml-2 underline font-medium"
-          >
-            지역으로 찾기 →
-          </button>
+        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-4 text-sm text-yellow-800 space-y-2">
+          <div>{geoError}</div>
+          <div className="text-xs text-yellow-700">
+            Safari 주소창 왼쪽 <strong>AA 버튼 → 웹사이트 설정 → 위치 → 물어보기</strong>로 변경 후 다시 시도하세요.
+          </div>
+          <div className="flex gap-3 pt-1">
+            <button
+              onClick={() => { setGeoError(null); }}
+              className="underline font-medium"
+            >
+              다시 시도
+            </button>
+            <button
+              onClick={() => setTab("region")}
+              className="underline font-medium"
+            >
+              지역으로 찾기 →
+            </button>
+          </div>
         </div>
       )}
 
