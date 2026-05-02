@@ -14,6 +14,19 @@ type Clinic = {
   lat: number | null;
   lng: number | null;
   distance?: number;
+  reviewSummary?: ReviewSummary;
+};
+
+type ReviewSummary = {
+  count: number;
+  avgScore: number | null;
+};
+
+type ReviewRecord = {
+  clinic_id: string;
+  score_explanation: number | null;
+  score_trust: number | null;
+  score_price: number | null;
 };
 
 type Tab = "nearby" | "region";
@@ -31,6 +44,37 @@ function calcDistance(lat1: number, lng1: number, lat2: number, lng2: number) {
       Math.cos((lat2 * Math.PI) / 180) *
       Math.sin(dLng / 2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function computeReviewSummaries(reviews: ReviewRecord[]): Map<string, ReviewSummary> {
+  const map = new Map<string, { totalScore: number; count: number }>();
+  for (const r of reviews) {
+    const scores = [r.score_explanation, r.score_trust, r.score_price].filter((s) => s != null) as number[];
+    if (scores.length === 0) continue;
+    const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+    const existing = map.get(r.clinic_id);
+    if (existing) {
+      existing.totalScore += avg;
+      existing.count++;
+    } else {
+      map.set(r.clinic_id, { totalScore: avg, count: 1 });
+    }
+  }
+  const result = new Map<string, ReviewSummary>();
+  for (const [clinicId, v] of map) {
+    result.set(clinicId, { count: v.count, avgScore: Math.round((v.totalScore / v.count) * 10) / 10 });
+  }
+  return result;
+}
+
+function getReviewBadge(summary?: ReviewSummary) {
+  if (!summary || summary.count === 0) {
+    return { color: "bg-gray-300", label: "후기 없음" };
+  }
+  if (summary.avgScore != null && summary.avgScore >= 4) {
+    return { color: "bg-green-500", label: `좋음 ${summary.avgScore}` };
+  }
+  return { color: "bg-red-500", label: `주의 ${summary.avgScore}` };
 }
 
 export default function ClinicsPage() {
@@ -98,21 +142,22 @@ export default function ClinicsPage() {
 
     setLoading(true);
 
-    if (tab === "nearby" && userPos) {
-      // 반경 ~5km 바운딩 박스
-      const delta = 0.045;
-      let query = supabase
-        .from("clinics")
-        .select("clinic_id, name, address, city, district, phone, lat, lng")
-        .eq("is_active", true)
-        .gte("lat", userPos.lat - delta)
-        .lte("lat", userPos.lat + delta)
-        .gte("lng", userPos.lng - delta)
-        .lte("lng", userPos.lng + delta);
+    const loadClinics = async () => {
+      let query;
+      if (tab === "nearby" && userPos) {
+        const delta = 0.045;
+        query = supabase
+          .from("clinics")
+          .select("clinic_id, name, address, city, district, phone, lat, lng")
+          .eq("is_active", true)
+          .gte("lat", userPos.lat - delta)
+          .lte("lat", userPos.lat + delta)
+          .gte("lng", userPos.lng - delta)
+          .lte("lng", userPos.lng + delta);
 
-      if (search.trim()) query = query.ilike("name", `%${search.trim()}%`);
+        if (search.trim()) query = query.ilike("name", `%${search.trim()}%`);
 
-      query.then(({ data }) => {
+        const { data } = await query;
         const sorted = (data ?? [])
           .map((c) => ({
             ...c,
@@ -122,26 +167,60 @@ export default function ClinicsPage() {
                 : 999,
           }))
           .sort((a, b) => (a.distance ?? 999) - (b.distance ?? 999));
-        setClinics(sorted);
-        setLoading(false);
-      });
-    } else {
-      let query = supabase
-        .from("clinics")
-        .select("clinic_id, name, address, city, district, phone, lat, lng")
-        .eq("is_active", true)
-        .eq("city", city)
-        .order("name")
-        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
-      if (district) query = query.eq("district", district);
-      if (search.trim()) query = query.ilike("name", `%${search.trim()}%`);
+        const clinicIds = sorted.map((c) => c.clinic_id);
+        const reviews = clinicIds.length > 0
+          ? await supabase
+              .from("reviews")
+              .select("clinic_id, score_explanation, score_trust, score_price")
+              .in("clinic_id", clinicIds)
+              .eq("is_hidden", false)
+              .then(({ data }) => data ?? [])
+          : [];
 
-      query.then(({ data }) => {
-        setClinics(data ?? []);
+        const summaries = computeReviewSummaries(reviews);
+        const withReviews = sorted.map((c) => ({
+          ...c,
+          reviewSummary: summaries.get(c.clinic_id),
+        }));
+
+        setClinics(withReviews);
         setLoading(false);
-      });
-    }
+      } else {
+        query = supabase
+          .from("clinics")
+          .select("clinic_id, name, address, city, district, phone, lat, lng")
+          .eq("is_active", true)
+          .eq("city", city)
+          .order("name")
+          .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+
+        if (district) query = query.eq("district", district);
+        if (search.trim()) query = query.ilike("name", `%${search.trim()}%`);
+
+        const { data } = await query;
+        const clinicIds = (data ?? []).map((c) => c.clinic_id);
+        const reviews = clinicIds.length > 0
+          ? await supabase
+              .from("reviews")
+              .select("clinic_id, score_explanation, score_trust, score_price")
+              .in("clinic_id", clinicIds)
+              .eq("is_hidden", false)
+              .then(({ data }) => data ?? [])
+          : [];
+
+        const summaries = computeReviewSummaries(reviews);
+        const withReviews = (data ?? []).map((c) => ({
+          ...c,
+          reviewSummary: summaries.get(c.clinic_id),
+        }));
+
+        setClinics(withReviews);
+        setLoading(false);
+      }
+    };
+
+    loadClinics();
   }, [tab, userPos, city, district, search, page]);
 
   const pagedClinics = tab === "nearby" ? clinics.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE) : clinics;
@@ -270,29 +349,37 @@ export default function ClinicsPage() {
         <div className="text-center text-gray-400 py-20">검색 결과가 없습니다</div>
       ) : (
         <ul className="space-y-2">
-          {pagedClinics.map((c) => (
-            <li key={c.clinic_id}>
-              <Link
-                href={`/clinics/${c.clinic_id}`}
-                className="flex justify-between items-start bg-white rounded-xl border border-gray-200 px-4 py-3 hover:border-blue-400 hover:shadow-sm transition"
-              >
-                <div className="min-w-0">
-                  <div className="font-semibold text-gray-900">{c.name}</div>
-                  <div className="text-sm text-gray-500 mt-0.5 truncate">{c.address}</div>
-                  {c.phone && (
-                    <div className="text-sm text-gray-400 mt-0.5">{c.phone}</div>
-                  )}
-                </div>
-                {c.distance !== undefined && (
-                  <div className="text-sm font-medium text-blue-500 ml-3 shrink-0">
-                    {c.distance < 1
-                      ? `${Math.round(c.distance * 1000)}m`
-                      : `${c.distance.toFixed(1)}km`}
+          {pagedClinics.map((c) => {
+            const badge = getReviewBadge(c.reviewSummary);
+            return (
+              <li key={c.clinic_id}>
+                <Link
+                  href={`/clinics/${c.clinic_id}`}
+                  className="flex justify-between items-start bg-white rounded-xl border border-gray-200 px-4 py-3 hover:border-blue-400 hover:shadow-sm transition"
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${badge.color}`} title={badge.label} />
+                      <span className="font-semibold text-gray-900">{c.name}</span>
+                    </div>
+                    <div className="text-sm text-gray-500 mt-0.5 truncate">{c.address}</div>
+                    {c.phone && (
+                      <div className="text-sm text-gray-400 mt-0.5">{c.phone}</div>
+                    )}
                   </div>
-                )}
-              </Link>
-            </li>
-          ))}
+                  <div className="flex items-center gap-2 ml-3 shrink-0">
+                    {c.distance !== undefined && (
+                      <div className="text-sm font-medium text-blue-500">
+                        {c.distance < 1
+                          ? `${Math.round(c.distance * 1000)}m`
+                          : `${c.distance.toFixed(1)}km`}
+                      </div>
+                    )}
+                  </div>
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       )}
 
