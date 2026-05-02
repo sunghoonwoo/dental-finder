@@ -104,7 +104,6 @@ export default function ClinicsPage() {
       let query = supabase
         .from("clinics")
         .select("clinic_id, name, address, city, district, phone, lat, lng")
-        .eq("is_active", true)
         .gte("lat", userPos.lat - delta)
         .lte("lat", userPos.lat + delta)
         .gte("lng", userPos.lng - delta)
@@ -129,7 +128,6 @@ export default function ClinicsPage() {
       let query = supabase
         .from("clinics")
         .select("clinic_id, name, address, city, district, phone, lat, lng")
-        .eq("is_active", true)
         .eq("city", city)
         .order("name")
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
