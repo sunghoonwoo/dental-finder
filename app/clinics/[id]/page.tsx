@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import KakaoMap from "@/components/KakaoMap";
 
 type Clinic = {
   clinic_id: string;
@@ -11,6 +12,8 @@ type Clinic = {
   city: string;
   district: string;
   phone: string | null;
+  lat: number | null;
+  lng: number | null;
 };
 
 type PriceReport = {
@@ -56,6 +59,13 @@ export default function ClinicDetailPage() {
         ← 목록으로
       </button>
 
+      {/* 지도 */}
+      {clinic.lat && clinic.lng && (
+        <div className="mb-4">
+          <KakaoMap lat={clinic.lat} lng={clinic.lng} name={clinic.name} />
+        </div>
+      )}
+
       {/* 치과 기본 정보 */}
       <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
         <h1 className="text-xl font-bold text-gray-900">{clinic.name}</h1>
@@ -68,6 +78,16 @@ export default function ClinicDetailPage() {
         <div className="text-xs text-gray-400 mt-1">
           {clinic.city} {clinic.district}
         </div>
+        {clinic.lat && clinic.lng && (
+          <a
+            href={`https://map.kakao.com/link/map/${encodeURIComponent(clinic.name)},${clinic.lat},${clinic.lng}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 inline-flex items-center gap-1 text-sm bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-medium px-3 py-1.5 rounded-lg transition"
+          >
+            🗺️ 카카오맵에서 길찾기
+          </a>
+        )}
       </div>
 
       {/* 가격 정보 */}
