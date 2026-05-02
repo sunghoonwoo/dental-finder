@@ -112,8 +112,7 @@ export default function ClinicsPage() {
 
       if (search.trim()) query = query.ilike("name", `%${search.trim()}%`);
 
-      query.then(({ data, error }) => {
-        console.log("[nearby] data:", data?.length, "error:", error);
+      query.then(({ data }) => {
         const sorted = (data ?? [])
           .map((c) => ({
             ...c,
@@ -138,8 +137,7 @@ export default function ClinicsPage() {
       if (district) query = query.eq("district", district);
       if (search.trim()) query = query.ilike("name", `%${search.trim()}%`);
 
-      query.then(({ data, error }) => {
-        console.log("[region] data:", data?.length, "error:", error);
+      query.then(({ data }) => {
         setClinics(data ?? []);
         setLoading(false);
       });
