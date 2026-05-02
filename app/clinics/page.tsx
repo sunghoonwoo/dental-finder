@@ -86,12 +86,6 @@ export default function ClinicsPage() {
     );
   }
 
-  // 내 위치 탭: 자동으로 위치 요청
-  useEffect(() => {
-    if (tab === "nearby" && !userPos && !geoError) {
-      requestLocation();
-    }
-  }, [tab]);
 
   // 데이터 로드
   useEffect(() => {
@@ -233,9 +227,18 @@ export default function ClinicsPage() {
         </div>
       )}
 
-      {/* 위치 로딩 */}
-      {tab === "nearby" && geoLoading && (
-        <div className="text-center text-gray-400 py-10">위치를 가져오는 중...</div>
+      {/* 위치 버튼 / 로딩 */}
+      {tab === "nearby" && !userPos && !geoError && (
+        <div className="flex flex-col items-center py-16 gap-4">
+          <div className="text-gray-400 text-sm">내 주변 치과를 찾으려면 위치 권한이 필요합니다</div>
+          <button
+            onClick={requestLocation}
+            disabled={geoLoading}
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-xl transition disabled:opacity-50"
+          >
+            {geoLoading ? "위치를 가져오는 중..." : "📍 내 위치 사용하기"}
+          </button>
+        </div>
       )}
 
       {/* 검색 */}
@@ -252,7 +255,7 @@ export default function ClinicsPage() {
       {/* 목록 */}
       {loading ? (
         <div className="text-center text-gray-400 py-20">불러오는 중...</div>
-      ) : pagedClinics.length === 0 && !geoLoading ? (
+      ) : pagedClinics.length === 0 && (tab === "region" || userPos) ? (
         <div className="text-center text-gray-400 py-20">검색 결과가 없습니다</div>
       ) : (
         <ul className="space-y-2">
