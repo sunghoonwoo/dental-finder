@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import NearbyMap from "@/components/NearbyMap";
 import { useClinics } from "@/hooks/useClinics";
 import { getReportBadge, getBadgeHex } from "@/lib/clinicUtils";
@@ -25,6 +26,7 @@ export default function ClinicsPage() {
   const [search, setSearch] = useState("");
   const [priceReportOnly, setPriceReportOnly] = useState(false);
   const [page, setPage] = useState(0);
+  const router = useRouter();
 
   const { clinics, loading, pagedClinics } = useClinics({ tab, userPos, city, district, search, page, priceReportOnly });
 
@@ -106,7 +108,7 @@ export default function ClinicsPage() {
             }))}
             selectedId={null}
             onSelect={(id) => {
-              window.location.href = `/clinics/${id}`;
+              router.push(`/clinics/${id}`);
             }}
           />
         </div>

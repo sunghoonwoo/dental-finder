@@ -75,7 +75,7 @@ export function useClinics({ tab, userPos, city, district, search, page, priceRe
           q = q.eq("city", city);
           if (district) q = q.eq("district", district);
         }
-        if (search.trim()) q = q.ilike("name", `%${search.trim()}%`);
+        if (search && search.trim()) q = q.ilike("name", `%${search.trim()}%`);
 
         const { data } = await q;
         let result: Clinic[] = (data ?? []).map((c: any) => ({ ...c, reportSummary: summaries.get(c.clinic_id) }));
@@ -92,7 +92,7 @@ export function useClinics({ tab, userPos, city, district, search, page, priceRe
           .eq("is_active", true)
           .gte("lat", userPos.lat - delta).lte("lat", userPos.lat + delta)
           .gte("lng", userPos.lng - delta).lte("lng", userPos.lng + delta);
-        if (search.trim()) query = query.ilike("name", `%${search.trim()}%`);
+        if (search && search.trim()) query = query.ilike("name", `%${search.trim()}%`);
 
         const { data } = await query;
         const sorted = withDistances(data ?? []);
@@ -112,7 +112,7 @@ export function useClinics({ tab, userPos, city, district, search, page, priceRe
           .order("name")
           .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
         if (district) query = query.eq("district", district);
-        if (search.trim()) query = query.ilike("name", `%${search.trim()}%`);
+        if (search && search.trim()) query = query.ilike("name", `%${search.trim()}%`);
 
         const { data } = await query;
         const clinicIds = (data ?? []).map((c) => c.clinic_id);
