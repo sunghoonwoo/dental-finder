@@ -53,25 +53,21 @@ export function useClinics({ tab, userPos, city, district, search, page, priceRe
 
     const loadClinics = async () => {
     if (priceReportOnly) {
-      // user_price_reports에서 제보가 있는 clinic_id만 가져오기 (중복 제거)
+      // user_price_reports에서 제보 있는 clinic_id만 가져오기 (report_id 포함!)
       const { data: rdata } = await supabase
         .from("user_price_reports")
-        .select("clinic_id")
-        .then(({ data }) => {
-          const ids = [...new Set((data ?? []).map((r: any) => r.clinic_id))];
-          return { data: ids.map(id => ({ clinic_id: id })) };
-        });
+        .select("clinic_id, extra_recommended, report_id, visit_id");
+      const reports = (rdata ?? []) as ReportRecord[];
       
-      const clinicIds = (rdata ?? []) as { clinic_id: string }[];
-      const uniqueClinicIds = [...new Set(clinicIds.map(c => c.clinic_id))];
+      // report_id 기준으로 중복 제거된 clinic_id 목록
+      const clinicIdsWithReports = [...new Set(reports.map(r => r.clinic_id))];
       
-      if (uniqueClinicIds.length === 0) { setClinics([]); setLoading(false); return; }
+      if (clinicIdsWithReports.length === 0) { setClinics([]); setLoading(false); return; }
       
-      // 제보 있는 치과 ID만 필터링 (uniqueClinicIds 사용)
       let q = supabase
         .from("clinics")
         .select("clinic_id, name, address, city, district, phone, lat, lng")
-        .in("clinic_id", uniqueClinicIds);
+        .in("clinic_id", clinicIdsWithReports);
         
         // 검색 조건 적용 (priceReportOnly 모드에서는 검색만 지원)
         if (search && search.trim()) q = q.ilike("name", `%${search.trim()}%`);
