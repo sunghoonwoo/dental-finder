@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import NearbyMap from "@/components/NearbyMap";
 import { useClinics } from "@/hooks/useClinics";
 import { getReportBadge, getBadgeHex } from "@/lib/clinicUtils";
@@ -26,7 +25,6 @@ export default function ClinicsPage() {
   const [search, setSearch] = useState("");
   const [priceReportOnly, setPriceReportOnly] = useState(false);
   const [page, setPage] = useState(0);
-  const router = useRouter();
 
   const { clinics, loading, pagedClinics } = useClinics({ tab, userPos, city, district, search, page, priceReportOnly });
 
@@ -108,7 +106,7 @@ export default function ClinicsPage() {
             }))}
             selectedId={null}
             onSelect={(id) => {
-              router.push(`/clinics/${id}`);
+              window.location.href = `/clinics/${id}`;
             }}
           />
         </div>
@@ -176,7 +174,7 @@ export default function ClinicsPage() {
                 >
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${badge.color}`} title={badge.label} />
+                      {badge.color && <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${badge.color}`} title={badge.label} />}
                       <span className="font-semibold text-gray-900">{c.name}</span>
                       {c.reportSummary && c.reportSummary.count > 0 && (
                         <span className="text-xs bg-blue-50 text-blue-600 border border-blue-200 px-1.5 py-0.5 rounded font-medium">제보 {c.reportSummary.count}건</span>
