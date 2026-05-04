@@ -67,15 +67,7 @@ export function useClinics({ tab, userPos, city, district, search, page, priceRe
           .eq("is_active", true)
           .in("clinic_id", clinicIds);
         
-        // 지역/검색 조건 적용
-        if (tab === "nearby" && userPos) {
-          q = q.gte("lat", userPos.lat - delta).lte("lat", userPos.lat + delta)
-               .gte("lng", userPos.lng - delta).lte("lng", userPos.lng + delta);
-        } else if (tab === "region") {
-          if (city) q = q.eq("city", city);
-          if (district) q = q.eq("district", district);
-        }
-        // 검색 조건은 항상 적용
+        // 검색 조건 적용 (priceReportOnly 모드에서는 검색만 지원)
         if (search && search.trim()) q = q.ilike("name", `%${search.trim()}%`);
         
         const { data } = await q;
