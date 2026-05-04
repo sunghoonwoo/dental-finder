@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
+import NearbyMap from "@/components/NearbyMap";
 
 type Clinic = {
   clinic_id: string;
@@ -14,25 +15,20 @@ type Clinic = {
   lat: number | null;
   lng: number | null;
   distance?: number;
-  reviewSummary?: ReviewSummary;
+  reportSummary?: ReportSummary;
 };
 
-type ReviewSummary = {
+type ReportSummary = {
   count: number;
-  avgScore: number | null;
-};
-
-type ReviewRecord = {
-  clinic_id: string;
-  score_explanation: number | null;
-  score_trust: number | null;
-  score_price: number | null;
+  noExtraCount: number;
 };
 
 type Tab = "nearby" | "region";
 
-const CITIES = ["서울", "경기"];
+const CITIES = ["서울", "경기", "부산", "인천", "대구", "광주", "대전", "울산", "세종", "강원", "충북", "충남", "전북", "전남", "경북", "경남", "제주"];
 const PAGE_SIZE = 20;
+const LOCATION_CACHE_KEY = "dental_user_location";
+const LOCATION_CACHE_TTL = 24 * 60 * 60 * 1000; // 24시간
 
 function calcDistance(lat1: number, lng1: number, lat2: number, lng2: number) {
   const R = 6371;
@@ -46,35 +42,41 @@ function calcDistance(lat1: number, lng1: number, lat2: number, lng2: number) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-function computeReviewSummaries(reviews: ReviewRecord[]): Map<string, ReviewSummary> {
-  const map = new Map<string, { totalScore: number; count: number }>();
-  for (const r of reviews) {
-    const scores = [r.score_explanation, r.score_trust, r.score_price].filter((s) => s != null) as number[];
-    if (scores.length === 0) continue;
-    const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+type ReportRecord = {
+  clinic_id: string;
+  extra_recommended: boolean;
+};
+
+function computeReportSummaries(reports: ReportRecord[]): Map<string, ReportSummary> {
+  const map = new Map<string, ReportSummary>();
+  for (const r of reports) {
     const existing = map.get(r.clinic_id);
     if (existing) {
-      existing.totalScore += avg;
       existing.count++;
+      if (!r.extra_recommended) existing.noExtraCount++;
     } else {
-      map.set(r.clinic_id, { totalScore: avg, count: 1 });
+      map.set(r.clinic_id, { count: 1, noExtraCount: r.extra_recommended ? 0 : 1 });
     }
   }
-  const result = new Map<string, ReviewSummary>();
-  for (const [clinicId, v] of map) {
-    result.set(clinicId, { count: v.count, avgScore: Math.round((v.totalScore / v.count) * 10) / 10 });
-  }
-  return result;
+  return map;
 }
 
-function getReviewBadge(summary?: ReviewSummary) {
+function getReportBadge(summary?: ReportSummary) {
   if (!summary || summary.count === 0) {
-    return { color: "bg-gray-300", label: "후기 없음" };
+    return { color: "bg-gray-300", label: "제보없음" };
   }
-  if (summary.avgScore != null && summary.avgScore >= 4) {
-    return { color: "bg-green-500", label: `좋음 ${summary.avgScore}` };
-  }
-  return { color: "bg-red-500", label: `주의 ${summary.avgScore}` };
+  const pct = summary.noExtraCount / summary.count;
+  if (pct >= 0.8) return { color: "bg-green-500", label: `양심 ${Math.round(pct * 100)}%` };
+  if (pct >= 0.5) return { color: "bg-yellow-400", label: `보통 ${Math.round(pct * 100)}%` };
+  return { color: "bg-red-500", label: `주의 ${Math.round(pct * 100)}%` };
+}
+
+function getBadgeHex(summary?: ReportSummary): string {
+  if (!summary || summary.count === 0) return "#d1d5db";
+  const pct = summary.noExtraCount / summary.count;
+  if (pct >= 0.8) return "#22c55e";
+  if (pct >= 0.5) return "#facc15";
+  return "#ef4444";
 }
 
 export default function ClinicsPage() {
@@ -95,17 +97,28 @@ export default function ClinicsPage() {
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(0);
   const [search, setSearch] = useState("");
+  const [priceReportOnly, setPriceReportOnly] = useState(false);
+  const [selectedClinicId, setSelectedClinicId] = useState<string | null>(null);
+
+  // 캐시된 위치 복원
+  useEffect(() => {
+    try {
+      const cached = localStorage.getItem(LOCATION_CACHE_KEY);
+      if (cached) {
+        const { lat, lng, ts } = JSON.parse(cached);
+        if (Date.now() - ts < LOCATION_CACHE_TTL) {
+          setUserPos({ lat, lng });
+        }
+      }
+    } catch {}
+  }, []);
 
   // 구/군 목록 로드
   useEffect(() => {
     supabase
-      .from("clinics")
-      .select("district")
-      .eq("city", city)
-      .order("district")
+      .rpc("get_districts", { p_city: city })
       .then(({ data }) => {
-        const unique = [...new Set((data ?? []).map((r) => r.district))];
-        setDistricts(unique);
+        setDistricts((data ?? []).map((r: { district: string }) => r.district));
         setDistrict("");
       });
   }, [city]);
@@ -120,8 +133,12 @@ export default function ClinicsPage() {
     setGeoError(null);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setUserPos({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        const location = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setUserPos(location);
         setGeoLoading(false);
+        try {
+          localStorage.setItem(LOCATION_CACHE_KEY, JSON.stringify({ ...location, ts: Date.now() }));
+        } catch {}
       },
       () => {
         setGeoError("위치 권한이 거부됐습니다. 지역으로 찾기를 이용해주세요.");
@@ -135,59 +152,83 @@ export default function ClinicsPage() {
   useEffect(() => {
     setPage(0);
     setClinics([]);
-  }, [tab, city, district, search, userPos]);
+  }, [tab, city, district, search, userPos, priceReportOnly]);
 
   useEffect(() => {
     if (tab === "nearby" && !userPos) return;
 
     setLoading(true);
 
+    // 일반 탐색 5km, 제보필터 10km
+    const NEARBY_KM = priceReportOnly ? 10 : 5;
+    const delta = NEARBY_KM / 111;
+
+    const withDistances = (items: Clinic[]): Clinic[] =>
+      items
+        .map((c) => ({ ...c, distance: c.lat && c.lng && userPos ? calcDistance(userPos.lat, userPos.lng, c.lat, c.lng) : 999 }))
+        .filter((c) => (c.distance ?? 999) <= NEARBY_KM)
+        .sort((a, b) => (a.distance ?? 999) - (b.distance ?? 999));
+
     const loadClinics = async () => {
-      let query;
-      if (tab === "nearby" && userPos) {
-        const delta = 0.045;
-        query = supabase
+      // 제보 있는 곳만 필터
+      if (priceReportOnly) {
+        const { data: rdata } = await supabase
+          .from("user_price_reports")
+          .select("clinic_id, extra_recommended");
+
+        const reports = (rdata ?? []) as ReportRecord[];
+        const summaries = computeReportSummaries(reports);
+        const clinicIds = [...summaries.keys()];
+
+        if (clinicIds.length === 0) { setClinics([]); setLoading(false); return; }
+
+        let q = supabase
           .from("clinics")
           .select("clinic_id, name, address, city, district, phone, lat, lng")
           .eq("is_active", true)
-          .gte("lat", userPos.lat - delta)
-          .lte("lat", userPos.lat + delta)
-          .gte("lng", userPos.lng - delta)
-          .lte("lng", userPos.lng + delta);
+          .in("clinic_id", clinicIds);
+
+        if (tab === "nearby" && userPos) {
+          q = q.gte("lat", userPos.lat - delta).lte("lat", userPos.lat + delta)
+               .gte("lng", userPos.lng - delta).lte("lng", userPos.lng + delta);
+        } else if (tab === "region") {
+          q = q.eq("city", city);
+          if (district) q = q.eq("district", district);
+        }
+        if (search.trim()) q = q.ilike("name", `%${search.trim()}%`);
+
+        const { data } = await q;
+        let withSummary: Clinic[] = (data ?? []).map((c: any) => ({ ...c, reportSummary: summaries.get(c.clinic_id) }));
+        if (tab === "nearby") withSummary = withDistances(withSummary);
+
+        setClinics(withSummary);
+        setLoading(false);
+        return;
+      }
+
+      if (tab === "nearby" && userPos) {
+        let query = supabase
+          .from("clinics")
+          .select("clinic_id, name, address, city, district, phone, lat, lng")
+          .eq("is_active", true)
+          .gte("lat", userPos.lat - delta).lte("lat", userPos.lat + delta)
+          .gte("lng", userPos.lng - delta).lte("lng", userPos.lng + delta);
 
         if (search.trim()) query = query.ilike("name", `%${search.trim()}%`);
 
         const { data } = await query;
-        const sorted = (data ?? [])
-          .map((c) => ({
-            ...c,
-            distance:
-              c.lat && c.lng
-                ? calcDistance(userPos.lat, userPos.lng, c.lat, c.lng)
-                : 999,
-          }))
-          .sort((a, b) => (a.distance ?? 999) - (b.distance ?? 999));
+        const sorted = withDistances(data ?? []);
 
         const clinicIds = sorted.map((c) => c.clinic_id);
-        const reviews = clinicIds.length > 0
-          ? await supabase
-              .from("reviews")
-              .select("clinic_id, score_explanation, score_trust, score_price")
-              .in("clinic_id", clinicIds)
-              .eq("is_hidden", false)
-              .then(({ data }) => data ?? [])
+        const reports = clinicIds.length > 0
+          ? await supabase.from("user_price_reports").select("clinic_id, extra_recommended").in("clinic_id", clinicIds).then(({ data }) => data ?? [])
           : [];
 
-        const summaries = computeReviewSummaries(reviews);
-        const withReviews = sorted.map((c) => ({
-          ...c,
-          reviewSummary: summaries.get(c.clinic_id),
-        }));
-
-        setClinics(withReviews);
+        const summaries = computeReportSummaries(reports as ReportRecord[]);
+        setClinics(sorted.map((c) => ({ ...c, reportSummary: summaries.get(c.clinic_id) })));
         setLoading(false);
       } else {
-        query = supabase
+        let query = supabase
           .from("clinics")
           .select("clinic_id, name, address, city, district, phone, lat, lng")
           .eq("is_active", true)
@@ -200,30 +241,22 @@ export default function ClinicsPage() {
 
         const { data } = await query;
         const clinicIds = (data ?? []).map((c) => c.clinic_id);
-        const reviews = clinicIds.length > 0
-          ? await supabase
-              .from("reviews")
-              .select("clinic_id, score_explanation, score_trust, score_price")
-              .in("clinic_id", clinicIds)
-              .eq("is_hidden", false)
-              .then(({ data }) => data ?? [])
+        const reports = clinicIds.length > 0
+          ? await supabase.from("user_price_reports").select("clinic_id, extra_recommended").in("clinic_id", clinicIds).then(({ data }) => data ?? [])
           : [];
 
-        const summaries = computeReviewSummaries(reviews);
-        const withReviews = (data ?? []).map((c) => ({
-          ...c,
-          reviewSummary: summaries.get(c.clinic_id),
-        }));
-
-        setClinics(withReviews);
+        const summaries = computeReportSummaries(reports as ReportRecord[]);
+        setClinics((data ?? []).map((c) => ({ ...c, reportSummary: summaries.get(c.clinic_id) })));
         setLoading(false);
       }
     };
 
     loadClinics();
-  }, [tab, userPos, city, district, search, page]);
+  }, [tab, userPos, city, district, search, page, priceReportOnly]);
 
-  const pagedClinics = tab === "nearby" ? clinics.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE) : clinics;
+  const pagedClinics = tab === "nearby" && !priceReportOnly
+    ? clinics.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
+    : clinics;
 
   return (
     <div>
@@ -249,47 +282,51 @@ export default function ClinicsPage() {
 
       {/* 지역 선택 */}
       {tab === "region" && (
-        <div className="mb-4 space-y-3">
-          <div className="flex gap-2">
+        <div className="mb-4 flex gap-2">
+          <select
+            value={city}
+            onChange={(e) => setCity(e.target.value)}
+            className="flex-1 border border-gray-300 rounded-xl px-3 py-2.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
             {CITIES.map((c) => (
-              <button
-                key={c}
-                onClick={() => setCity(c)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium border transition ${
-                  city === c
-                    ? "bg-blue-600 text-white border-blue-600"
-                    : "bg-white text-gray-700 border-gray-300 hover:border-blue-400"
-                }`}
-              >
-                {c}
-              </button>
+              <option key={c} value={c}>{c}</option>
             ))}
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => setDistrict("")}
-              className={`px-3 py-1.5 rounded-full text-sm border transition ${
-                district === ""
-                  ? "bg-blue-600 text-white border-blue-600"
-                  : "bg-white text-gray-600 border-gray-300 hover:border-blue-400"
-              }`}
-            >
-              전체
-            </button>
+          </select>
+          <select
+            value={district}
+            onChange={(e) => setDistrict(e.target.value)}
+            className="flex-1 border border-gray-300 rounded-xl px-3 py-2.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">전체 구/군</option>
             {districts.map((d) => (
-              <button
-                key={d}
-                onClick={() => setDistrict(d)}
-                className={`px-3 py-1.5 rounded-full text-sm border transition ${
-                  district === d
-                    ? "bg-blue-600 text-white border-blue-600"
-                    : "bg-white text-gray-600 border-gray-300 hover:border-blue-400"
-                }`}
-              >
-                {d}
-              </button>
+              <option key={d} value={d}>{d}</option>
             ))}
-          </div>
+          </select>
+        </div>
+      )}
+
+      {/* 내 위치 근처 지도 */}
+      {tab === "nearby" && userPos && (
+        <div className="mb-4">
+          <NearbyMap
+            userPos={userPos}
+            clinics={clinics
+              .filter((c) => c.lat != null && c.lng != null)
+              .map((c) => ({
+                clinic_id: c.clinic_id,
+                name: c.name,
+                lat: c.lat!,
+                lng: c.lng!,
+                color: getBadgeHex(c.reportSummary),
+              }))}
+            selectedId={selectedClinicId}
+            onSelect={(id) => {
+              setSelectedClinicId(id);
+              document
+                .getElementById(`clinic-${id}`)
+                ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+            }}
+          />
         </div>
       )}
 
@@ -331,15 +368,39 @@ export default function ClinicsPage() {
         </div>
       )}
 
-      {/* 검색 */}
+      {/* 검색 + 필터 */}
       {(tab === "region" || userPos) && (
-        <input
-          type="text"
-          placeholder="치과명으로 검색 (선택)"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
+        <div className="mb-4 space-y-2">
+          {tab === "nearby" && userPos && (
+            <div className="flex justify-end">
+              <button
+                onClick={requestLocation}
+                disabled={geoLoading}
+                className="text-xs text-gray-400 hover:text-blue-500 transition disabled:opacity-50"
+              >
+                {geoLoading ? "위치 가져오는 중..." : "📍 위치 새로고침"}
+              </button>
+            </div>
+          )}
+          <input
+            type="text"
+            placeholder="치과명으로 검색 (선택)"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <button
+            onClick={() => setPriceReportOnly((v) => !v)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition ${
+              priceReportOnly
+                ? "bg-orange-500 text-white border-orange-500"
+                : "bg-white text-orange-500 border-orange-300 hover:border-orange-500"
+            }`}
+          >
+            <span>📋</span>
+            <span>{priceReportOnly ? "제보 있는 곳만 ✕" : "제보 있는 곳만"}</span>
+          </button>
+        </div>
       )}
 
       {/* 목록 */}
@@ -350,17 +411,25 @@ export default function ClinicsPage() {
       ) : (
         <ul className="space-y-2">
           {pagedClinics.map((c) => {
-            const badge = getReviewBadge(c.reviewSummary);
+            const badge = getReportBadge(c.reportSummary);
             return (
-              <li key={c.clinic_id}>
+              <li key={c.clinic_id} id={`clinic-${c.clinic_id}`}>
                 <Link
                   href={`/clinics/${c.clinic_id}`}
-                  className="flex justify-between items-start bg-white rounded-xl border border-gray-200 px-4 py-3 hover:border-blue-400 hover:shadow-sm transition"
+                  onClick={() => setSelectedClinicId(c.clinic_id)}
+                  className={`flex justify-between items-start bg-white rounded-xl border px-4 py-3 hover:border-blue-400 hover:shadow-sm transition ${
+                    selectedClinicId === c.clinic_id
+                      ? "border-blue-400 shadow-sm bg-blue-50"
+                      : "border-gray-200"
+                  }`}
                 >
                   <div className="min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${badge.color}`} title={badge.label} />
                       <span className="font-semibold text-gray-900">{c.name}</span>
+                      {c.reportSummary && c.reportSummary.count > 0 && (
+                        <span className="text-xs bg-blue-50 text-blue-600 border border-blue-200 px-1.5 py-0.5 rounded font-medium">제보 {c.reportSummary.count}건</span>
+                      )}
                     </div>
                     <div className="text-sm text-gray-500 mt-0.5 truncate">{c.address}</div>
                     {c.phone && (
