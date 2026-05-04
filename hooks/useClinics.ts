@@ -108,9 +108,9 @@ export function useClinics({ tab, userPos, city, district, search, page, priceRe
           .from("clinics")
           .select("clinic_id, name, address, city, district, phone, lat, lng")
           .eq("is_active", true)
-          .eq("city", city)
           .order("name")
           .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+        if (city) query = query.eq("city", city);
         if (district) query = query.eq("district", district);
         if (search && search.trim()) query = query.ilike("name", `%${search.trim()}%`);
 
