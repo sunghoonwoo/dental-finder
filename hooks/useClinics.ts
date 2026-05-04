@@ -64,7 +64,6 @@ export function useClinics({ tab, userPos, city, district, search, page, priceRe
         let q = supabase
           .from("clinics")
           .select("clinic_id, name, address, city, district, phone, lat, lng")
-          .eq("is_active", true)
           .in("clinic_id", clinicIds);
         
         // 검색 조건 적용 (priceReportOnly 모드에서는 검색만 지원)
