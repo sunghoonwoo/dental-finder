@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { useEffect, useState, useCallback, Suspense } from "react";
 import { supabase } from "@/lib/supabase";
-import { useRouter } from "next/navigation";
 import NearbyMap from "@/components/NearbyMap";
 import { useClinics } from "@/hooks/useClinics";
 import { getReportBadge, getBadgeHex } from "@/lib/clinicUtils";
@@ -14,38 +14,63 @@ const PAGE_SIZE = 20;
 const LOCATION_CACHE_KEY = "dental_user_location";
 const LOCATION_CACHE_TTL = 24 * 60 * 60 * 1000;
 
-export default function ClinicsPage() {
-  const [tab, setTab] = useState<Tab>("nearby");
+function ClinicsPageContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  const [tab, setTab] = useState<Tab>(() => (searchParams.get("tab") as Tab) || "nearby");
   const [userPos, setUserPos] = useState<{ lat: number; lng: number } | null>(null);
   const [geoError, setGeoError] = useState<string | null>(null);
   const [geoLoading, setGeoLoading] = useState(false);
-  const [city, setCity] = useState("서울");
-  const [district, setDistrict] = useState("");
+  const [city, setCity] = useState(() => searchParams.get("city") || "서울");
+  const [district, setDistrict] = useState(() => searchParams.get("district") || "");
   const [districts, setDistricts] = useState<string[]>([]);
-  
-  // 검색 상태 - ref로 관리하여 훅 재실행 방지
-  const [inputValue, setInputValue] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-  const searchRef = useRef("");
-  
+
+  // URL에서 검색어 읽기 (새로고침 시 유지)
+  const [search, setSearch] = useState(() => searchParams.get("q") || "");
+  const [inputValue, setInputValue] = useState(() => searchParams.get("q") || "");
+
   const [priceReportOnly, setPriceReportOnly] = useState(false);
   const [page, setPage] = useState(0);
-  const router = useRouter();
 
-  const { clinics, loading, pagedClinics } = useClinics({ 
-    tab, userPos, city, district, 
-    search: debouncedSearch, 
-    page, priceReportOnly 
-  });
-
-  // 디바운스 검색
+  // 검색어 변경 감지 및 URL 업데이트 (디바운스)
   useEffect(() => {
     const timer = setTimeout(() => {
-      searchRef.current = inputValue;
-      setDebouncedSearch(inputValue);
+      if (inputValue !== search) {
+        setSearch(inputValue);
+        const params = new URLSearchParams(searchParams.toString());
+        if (inputValue) {
+          params.set("q", inputValue);
+        } else {
+          params.delete("q");
+        }
+        params.delete("page");
+        router.replace(`/clinics?${params.toString()}`, { scroll: false });
+      }
     }, 300);
     return () => clearTimeout(timer);
   }, [inputValue]);
+
+  // URL 파라미터 변경 시 상태 동기화
+  useEffect(() => {
+    const q = searchParams.get("q") || "";
+    const cityParam = searchParams.get("city") || "서울";
+    const districtParam = searchParams.get("district") || "";
+    const tabParam = (searchParams.get("tab") as Tab) || "nearby";
+
+    if (q !== search) setSearch(q);
+    if (q !== inputValue) setInputValue(q);
+    if (cityParam !== city) setCity(cityParam);
+    if (districtParam !== district) setDistrict(districtParam);
+    if (tabParam !== tab) setTab(tabParam);
+  }, [searchParams]);
+
+  const { clinics, loading, pagedClinics } = useClinics({
+    tab, userPos, city, district,
+    search,
+    page,
+    priceReportOnly
+  });
 
   // 캐시된 위치 복원
   useEffect(() => {
@@ -64,12 +89,12 @@ export default function ClinicsPage() {
       .rpc("get_districts", { p_city: city })
       .then(({ data }) => {
         setDistricts((data ?? []).map((r: { district: string }) => r.district));
-        setDistrict("");
+        if (!districts.includes(district)) setDistrict("");
       });
   }, [city]);
 
   // 페이지 리셋
-  useEffect(() => { setPage(0); }, [tab, city, district, debouncedSearch, userPos, priceReportOnly]);
+  useEffect(() => { setPage(0); }, [tab, city, district, search, userPos, priceReportOnly]);
 
   function requestLocation() {
     if (!navigator.geolocation) { setGeoError("이 브라우저는 위치 서비스를 지원하지 않습니다"); return; }
@@ -86,10 +111,22 @@ export default function ClinicsPage() {
     );
   }
 
-  // 클릭 핸들러 - e.preventDefault 없이 순수하게 처리
   const handleClinicClick = useCallback((clinicId: string) => {
     router.push(`/clinics/${clinicId}`);
   }, [router]);
+
+  // 탭/지역 변경 시 URL 업데이트
+  const updateURL = useCallback((params: Record<string, string>) => {
+    const newParams = new URLSearchParams(searchParams.toString());
+    Object.entries(params).forEach(([key, value]) => {
+      if (value) {
+        newParams.set(key, value);
+      } else {
+        newParams.delete(key);
+      }
+    });
+    router.replace(`/clinics?${newParams.toString()}`, { scroll: false });
+  }, [searchParams, router]);
 
   return (
     <div>
@@ -98,7 +135,10 @@ export default function ClinicsPage() {
         {(["nearby", "region"] as Tab[]).map((t) => (
           <button
             key={t}
-            onClick={() => setTab(t)}
+            onClick={() => {
+              setTab(t);
+              updateURL({ tab: t, page: "" });
+            }}
             className={`flex-1 py-2 rounded-lg text-sm font-medium transition ${tab === t ? "bg-white shadow text-gray-900" : "text-gray-500"}`}
           >
             {t === "nearby" ? "📍 내 위치 근처" : "🗺️ 지역으로 찾기"}
@@ -109,10 +149,24 @@ export default function ClinicsPage() {
       {/* 지역 선택 */}
       {tab === "region" && (
         <div className="mb-4 flex gap-2">
-          <select value={city} onChange={(e) => setCity(e.target.value)} className="flex-1 border border-gray-300 rounded-xl px-3 py-2.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <select
+            value={city}
+            onChange={(e) => {
+              setCity(e.target.value);
+              updateURL({ city: e.target.value, district: "", page: "" });
+            }}
+            className="flex-1 border border-gray-300 rounded-xl px-3 py-2.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
             {CITIES.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
-          <select value={district} onChange={(e) => setDistrict(e.target.value)} className="flex-1 border border-gray-300 rounded-xl px-3 py-2.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <select
+            value={district}
+            onChange={(e) => {
+              setDistrict(e.target.value);
+              updateURL({ district: e.target.value, page: "" });
+            }}
+            className="flex-1 border border-gray-300 rounded-xl px-3 py-2.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
             <option value="">전체 구/군</option>
             {districts.map((d) => <option key={d} value={d}>{d}</option>)}
           </select>
@@ -129,9 +183,7 @@ export default function ClinicsPage() {
               color: getBadgeHex(c.reportSummary),
             }))}
             selectedId={null}
-            onSelect={(id) => {
-              handleClinicClick(id);
-            }}
+            onSelect={(id) => handleClinicClick(id)}
           />
         </div>
       )}
@@ -143,7 +195,7 @@ export default function ClinicsPage() {
           <div className="text-xs text-yellow-700">Safari 주소창 왼쪽 <strong>AA 버튼 → 웹사이트 설정 → 위치 → 물어보기</strong>로 변경 후 다시 시도하세요.</div>
           <div className="flex gap-3 pt-1">
             <button onClick={() => setGeoError(null)} className="underline font-medium">다시 시도</button>
-            <button onClick={() => setTab("region")} className="underline font-medium">지역으로 찾기 →</button>
+            <button onClick={() => { setTab("region"); updateURL({ tab: "region" }); }} className="underline font-medium">지역으로 찾기 →</button>
           </div>
         </div>
       )}
@@ -175,7 +227,10 @@ export default function ClinicsPage() {
             onChange={(e) => setInputValue(e.target.value)}
             className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
-          <button onClick={() => setPriceReportOnly((v) => !v)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition ${priceReportOnly ? "bg-orange-500 text-white border-orange-500" : "bg-white text-orange-500 border-orange-300 hover:border-orange-500"}`}>
+          <button
+            onClick={() => setPriceReportOnly((v) => !v)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition ${priceReportOnly ? "bg-orange-500 text-white border-orange-500" : "bg-white text-orange-500 border-orange-300 hover:border-orange-500"}`}
+          >
             <span>📋</span><span>{priceReportOnly ? "제보 있는 곳만 ✕" : "제보 있는 곳만"}</span>
           </button>
         </div>
@@ -224,15 +279,23 @@ export default function ClinicsPage() {
       {/* 페이지네이션 */}
       {pagedClinics.length > 0 && (
         <div className="flex justify-center gap-3 mt-6">
-          <button onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={page === 0} className="px-4 py-2 text-sm rounded-lg border border-gray-300 disabled:opacity-30 hover:bg-gray-100">이전</button>
+          <button onClick={() => { setPage((p) => Math.max(0, p - 1)); updateURL({ page: (page - 1).toString() }); }} disabled={page === 0} className="px-4 py-2 text-sm rounded-lg border border-gray-300 disabled:opacity-30 hover:bg-gray-100">이전</button>
           <span className="px-4 py-2 text-sm text-gray-600">{page + 1}페이지</span>
           <button
-            onClick={() => setPage((p) => p + 1)}
+            onClick={() => { setPage((p) => p + 1); updateURL({ page: (page + 1).toString() }); }}
             disabled={tab === "nearby" ? (page + 1) * PAGE_SIZE >= clinics.length : clinics.length < PAGE_SIZE}
             className="px-4 py-2 text-sm rounded-lg border border-gray-300 disabled:opacity-30 hover:bg-gray-100"
           >다음</button>
         </div>
       )}
     </div>
+  );
+}
+
+export default function ClinicsPage() {
+  return (
+    <Suspense fallback={<div className="text-center text-gray-400 py-20">불러오는 중...</div>}>
+      <ClinicsPageContent />
+    </Suspense>
   );
 }
