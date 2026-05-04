@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import NearbyMap from "@/components/NearbyMap";
 import { useClinics } from "@/hooks/useClinics";
 import { getReportBadge, getBadgeHex } from "@/lib/clinicUtils";
@@ -23,14 +22,12 @@ export default function ClinicsPage() {
   const [city, setCity] = useState("서울");
   const [district, setDistrict] = useState("");
   const [districts, setDistricts] = useState<string[]>([]);
-  const [searchInput, setSearchInput] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [search, setSearch] = useState("");
+  const [inputValue, setInputValue] = useState("");
   const [priceReportOnly, setPriceReportOnly] = useState(false);
   const [page, setPage] = useState(0);
-  const [selectedClinicId, setSelectedClinicId] = useState<string | null>(null);
-  const router = useRouter();
 
-  const { clinics, loading, pagedClinics } = useClinics({ tab, userPos, city, district, search: searchQuery, page, priceReportOnly });
+  const { clinics, loading, pagedClinics } = useClinics({ tab, userPos, city, district, search, page, priceReportOnly });
 
   // 캐시된 위치 복원
   useEffect(() => {
@@ -55,6 +52,14 @@ export default function ClinicsPage() {
 
   // 페이지 리셋
   useEffect(() => { setPage(0); }, [tab, city, district, search, userPos, priceReportOnly]);
+
+  // 디바운스 검색
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearch(inputValue);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [inputValue]);
 
   function requestLocation() {
     if (!navigator.geolocation) { setGeoError("이 브라우저는 위치 서비스를 지원하지 않습니다"); return; }
@@ -94,7 +99,7 @@ export default function ClinicsPage() {
           </select>
           <select value={district} onChange={(e) => setDistrict(e.target.value)} className="flex-1 border border-gray-300 rounded-xl px-3 py-2.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option value="">전체 구/군</option>
-            {districts.map((d) => <option key={d} value={d}>{d}</option>)}
+            {districts.map((d) => <option key={d} value={d}>{d}</option>}
           </select>
         </div>
       )}
@@ -108,10 +113,9 @@ export default function ClinicsPage() {
               clinic_id: c.clinic_id, name: c.name, lat: c.lat!, lng: c.lng!,
               color: getBadgeHex(c.reportSummary),
             }))}
-            selectedId={selectedClinicId}
+            selectedId={null}
             onSelect={(id) => {
-              setSelectedClinicId(id);
-              document.getElementById(`clinic-${id}`)?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+              window.location.href = `/clinics/${id}`;
             }}
           />
         </div>
@@ -149,10 +153,13 @@ export default function ClinicsPage() {
               </button>
             </div>
           )}
-           <div className="relative">
-             <input type="text" placeholder="치과명으로 검색 (선택)" value={searchInput} onChange={(e) => setSearchInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); setSearchQuery(searchInput); }}} className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-             <button onClick={() => setSearchQuery(searchInput)} className="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-blue-500 hover:text-blue-700 px-2">검색</button>
-           </div>
+          <input
+            type="text"
+            placeholder="치과명으로 검색 (선택)"
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
           <button onClick={() => setPriceReportOnly((v) => !v)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition ${priceReportOnly ? "bg-orange-500 text-white border-orange-500" : "bg-white text-orange-500 border-orange-300 hover:border-orange-500"}`}>
             <span>📋</span><span>{priceReportOnly ? "제보 있는 곳만 ✕" : "제보 있는 곳만"}</span>
           </button>
@@ -167,17 +174,13 @@ export default function ClinicsPage() {
       ) : (
         <ul className="space-y-2">
           {pagedClinics.map((c) => {
-             const badge = getReportBadge(c.reportSummary);
-             return (
-               <li key={c.clinic_id} id={`clinic-${c.clinic_id}`}>
-                 <Link
-                   href={`/clinics/${c.clinic_id}`}
-                   onClick={(e) => {
-                     e.preventDefault();
-                     router.push(`/clinics/${c.clinic_id}`);
-                   }}
-                   className={`flex justify-between items-start bg-white rounded-xl border px-4 py-3 hover:border-blue-400 hover:shadow-sm transition ${selectedClinicId === c.clinic_id ? "border-blue-400 shadow-sm bg-blue-50" : "border-gray-200"}`}
-                 >
+            const badge = getReportBadge(c.reportSummary);
+            return (
+              <li key={c.clinic_id} id={`clinic-${c.clinic_id}`}>
+                <Link
+                  href={`/clinics/${c.clinic_id}`}
+                  className={`flex justify-between items-start bg-white rounded-xl border px-4 py-3 hover:border-blue-400 hover:shadow-sm transition block ${badge.color ? '' : ''}`}
+                >
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${badge.color}`} title={badge.label} />
@@ -196,10 +199,10 @@ export default function ClinicsPage() {
                       </div>
                     )}
                   </div>
-                 </Link>
-               </li>
-             );
-           })}
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       )}
 
