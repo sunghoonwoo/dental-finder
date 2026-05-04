@@ -60,22 +60,25 @@ export function useClinics({ tab, userPos, city, district, search, page, priceRe
 
         if (clinicIds.length === 0) { setClinics([]); setLoading(false); return; }
 
+        // 제보 있는 치과 ID만 필터링 (clinicIds 사용)
         let q = supabase
           .from("clinics")
           .select("clinic_id, name, address, city, district, phone, lat, lng")
           .eq("is_active", true)
           .in("clinic_id", clinicIds);
-
+        
+        // 지역/검색 조건 적용
         if (tab === "nearby" && userPos) {
           q = q.gte("lat", userPos.lat - delta).lte("lat", userPos.lat + delta)
                .gte("lng", userPos.lng - delta).lte("lng", userPos.lng + delta);
-      } else if (tab === "region") {
-        if (city) {
-          q = q.eq("city", city);
+        } else if (tab === "region") {
+          if (city) q = q.eq("city", city);
           if (district) q = q.eq("district", district);
         }
+        // 검색 조건은 항상 적용
         if (search && search.trim()) q = q.ilike("name", `%${search.trim()}%`);
-      }
+        
+        const { data } = await q;
 
         const { data } = await q;
         let result: Clinic[] = (data ?? []).map((c: any) => ({ ...c, reportSummary: summaries.get(c.clinic_id) }));
