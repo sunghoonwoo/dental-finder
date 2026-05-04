@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { useEffect, useState, useCallback, Suspense } from "react";
 import { supabase } from "@/lib/supabase";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import NearbyMap from "@/components/NearbyMap";
 import { useClinics } from "@/hooks/useClinics";
 import { getReportBadge, getBadgeHex } from "@/lib/clinicUtils";
@@ -14,7 +15,10 @@ const PAGE_SIZE = 20;
 const LOCATION_CACHE_KEY = "dental_user_location";
 const LOCATION_CACHE_TTL = 24 * 60 * 60 * 1000;
 
-export default function ClinicsPage() {
+function ClinicsPageContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  
   const [tab, setTab] = useState<Tab>("nearby");
   const [userPos, setUserPos] = useState<{ lat: number; lng: number } | null>(null);
   const [geoError, setGeoError] = useState<string | null>(null);
@@ -22,12 +26,40 @@ export default function ClinicsPage() {
   const [city, setCity] = useState("서울");
   const [district, setDistrict] = useState("");
   const [districts, setDistricts] = useState<string[]>([]);
-  const [search, setSearch] = useState("");
+  
+  // URL 쿼리에서 검색어 읽기 (새로고침 시 유지)
+  const [search, setSearch] = useState(() => searchParams.get("q") || "");
+  const [inputValue, setInputValue] = useState(() => searchParams.get("q") || "");
+  
   const [priceReportOnly, setPriceReportOnly] = useState(false);
   const [page, setPage] = useState(0);
-  const router = useRouter();
 
   const { clinics, loading, pagedClinics } = useClinics({ tab, userPos, city, district, search, page, priceReportOnly });
+
+  // URL 쿼리 동기화 (뒤로가기/앞으로가기 지원)
+  useEffect(() => {
+    const q = searchParams.get("q") || "";
+    if (q !== search) setSearch(q);
+    if (q !== inputValue) setInputValue(q);
+  }, [searchParams]);
+
+  // 검색어 디바운스 (입력 후 400ms 뒤에 반영)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (inputValue !== search) {
+        setSearch(inputValue);
+        // URL 업데이트 (뒤로가기 가능하도록)
+        const params = new URLSearchParams(searchParams.toString());
+        if (inputValue) {
+          params.set("q", inputValue);
+        } else {
+          params.delete("q");
+        }
+        router.replace(`/clinics?${params.toString()}`, { scroll: false });
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [inputValue]);
 
   // 캐시된 위치 복원
   useEffect(() => {
@@ -148,8 +180,8 @@ export default function ClinicsPage() {
           <input
             type="text"
             placeholder="치과명으로 검색 (선택)"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
             className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <button onClick={() => setPriceReportOnly((v) => !v)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition ${priceReportOnly ? "bg-orange-500 text-white border-orange-500" : "bg-white text-orange-500 border-orange-300 hover:border-orange-500"}`}>
@@ -158,7 +190,7 @@ export default function ClinicsPage() {
         </div>
       )}
 
-      {/* 목록 */}
+      {/* 목록 - 순수 Link 사용 (onClick 없음) */}
       {loading ? (
         <div className="text-center text-gray-400 py-20">불러오는 중...</div>
       ) : pagedClinics.length === 0 && (tab === "region" || userPos) ? (
@@ -169,9 +201,9 @@ export default function ClinicsPage() {
             const badge = getReportBadge(c.reportSummary);
             return (
               <li key={c.clinic_id} id={`clinic-${c.clinic_id}`}>
-                <div
-                  onClick={() => router.push(`/clinics/${c.clinic_id}`)}
-                  className="flex justify-between items-start bg-white rounded-xl border px-4 py-3 hover:border-blue-400 hover:shadow-sm transition cursor-pointer"
+                <Link
+                  href={`/clinics/${c.clinic_id}`}
+                  className="flex justify-between items-start bg-white rounded-xl border px-4 py-3 hover:border-blue-400 hover:shadow-sm transition block"
                 >
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -191,7 +223,7 @@ export default function ClinicsPage() {
                       </div>
                     )}
                   </div>
-                </div>
+                </Link>
               </li>
             );
           })}
@@ -211,5 +243,13 @@ export default function ClinicsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function ClinicsPage() {
+  return (
+    <Suspense fallback={<div className="text-center text-gray-400 py-20">불러오는 중...</div>}>
+      <ClinicsPageContent />
+    </Suspense>
   );
 }
