@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import KakaoMap from "@/components/KakaoMap";
+import PriceReportForm, { ReportFormValues } from "@/components/PriceReportForm";
+
 
 type Clinic = {
   clinic_id: string;
@@ -16,39 +18,168 @@ type Clinic = {
   lng: number | null;
 };
 
-type PriceReport = {
+type CommunityPrice = {
   report_id: string;
   treatment_name: string;
   price: number;
-  note: string | null;
-  source_url: string | null;
-  reported_at: string;
+  raw_text: string | null;
+  post_url: string | null;
+  post_date: string | null;
 };
+
+type UserReport = {
+  report_id: string;
+  visit_id: string | null;
+  treatment_id: number;
+  treatment_name: string;
+  price: number | null;
+  visit_date: string | null;
+  extra_recommended: boolean;
+  extra_note: string | null;
+  review_text: string | null;
+  friendliness_score: number | null;
+  nickname: string | null;
+  created_at: string;
+};
+
+const FRIENDLINESS_EMOJI = ["", "😠", "😕", "😐", "🙂", "😊"];
+
+type PinState = { reportId: string; action: "edit" | "delete" };
 
 export default function ClinicDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const [clinic, setClinic] = useState<Clinic | null>(null);
-  const [prices, setPrices] = useState<PriceReport[]>([]);
+  const [communityPrices, setCommunityPrices] = useState<CommunityPrice[]>([]);
+  const [userReports, setUserReports] = useState<UserReport[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [editingReport, setEditingReport] = useState<ReportFormValues | null>(null);
+  const [pinState, setPinState] = useState<PinState | null>(null);
+  const [pinInput, setPinInput] = useState("");
+  const [pinError, setPinError] = useState(false);
+  const [pinVerifying, setPinVerifying] = useState(false);
 
-  useEffect(() => {
-    Promise.all([
+  async function loadData() {
+    const [{ data: c }, { data: cp }, { data: ur }] = await Promise.all([
       supabase.from("clinics").select("*").eq("clinic_id", id).single(),
       supabase
         .from("price_reports")
-        .select("report_id, treatment_name, price, note, source_url, reported_at")
+        .select("report_id, treatment_name, price, raw_text, post_url, post_date")
         .eq("clinic_id", id)
-        .order("reported_at", { ascending: false }),
-    ]).then(([{ data: c }, { data: p }]) => {
-      setClinic(c);
-      setPrices(p ?? []);
-      setLoading(false);
-    });
-  }, [id]);
+        .order("post_date", { ascending: false }),
+      supabase
+        .from("user_price_reports")
+        .select("report_id, visit_id, treatment_id, treatment_types(name), price, visit_date, extra_recommended, extra_note, review_text, friendliness_score, nickname, created_at")
+        .eq("clinic_id", id)
+        .order("created_at", { ascending: false }),
+    ]);
+
+    setClinic(c);
+    setCommunityPrices(cp ?? []);
+    setUserReports(
+      (ur ?? []).map((r: any) => ({ ...r, treatment_name: r.treatment_types?.name ?? "" }))
+    );
+    setLoading(false);
+  }
+
+  useEffect(() => { loadData(); }, [id]);
+
+  function handleFormSuccess() {
+    setShowForm(false);
+    setEditingReport(null);
+    setSubmitted(true);
+    loadData();
+  }
+
+  async function openPinPrompt(reportId: string, action: "edit" | "delete") {
+    if (action === "delete") {
+      const { data: requiresPin } = await supabase.rpc("report_requires_pin", { p_report_id: reportId });
+      if (!requiresPin) {
+        await supabase.rpc("delete_report_with_pin", { p_report_id: reportId, p_pin: "" });
+        const report = userReports.find((r) => r.report_id === reportId);
+        if (report?.visit_id) {
+          const siblings = userReports.filter((r) => r.visit_id === report.visit_id && r.report_id !== reportId);
+          for (const s of siblings) await supabase.from("user_price_reports").delete().eq("report_id", s.report_id);
+        }
+        loadData();
+        return;
+      }
+    }
+    setPinState({ reportId, action });
+    setPinInput("");
+    setPinError(false);
+  }
+
+  async function handlePinSubmit() {
+    if (!pinState || pinInput.length !== 4) return;
+    setPinVerifying(true);
+    setPinError(false);
+
+    if (pinState.action === "delete") {
+      const { data: deleted } = await supabase.rpc("delete_report_with_pin", {
+        p_report_id: pinState.reportId,
+        p_pin: pinInput,
+      });
+      if (!deleted) { setPinError(true); setPinVerifying(false); return; }
+      // 같은 visit_id의 나머지 행도 삭제
+      const report = userReports.find((r) => r.report_id === pinState.reportId);
+      if (report?.visit_id) {
+        const siblings = userReports.filter((r) => r.visit_id === report.visit_id && r.report_id !== pinState.reportId);
+        for (const s of siblings) {
+          await supabase.from("user_price_reports").delete().eq("report_id", s.report_id);
+        }
+      }
+      setPinState(null);
+      setPinVerifying(false);
+      loadData();
+    } else {
+      const { data: ok } = await supabase.rpc("verify_report_pin", {
+        p_report_id: pinState.reportId,
+        p_pin: pinInput,
+      });
+      if (!ok) { setPinError(true); setPinVerifying(false); return; }
+      const report = userReports.find((r) => r.report_id === pinState.reportId);
+      if (report) {
+        setEditingReport({
+          reportId: report.report_id,
+          visitId: report.visit_id ?? undefined,
+          treatmentId: report.treatment_id,
+          price: report.price != null ? report.price.toLocaleString() : "",
+          visitDate: report.visit_date ?? "",
+          extraRecommended: report.extra_recommended,
+          extraNote: report.extra_note ?? "",
+          reviewText: report.review_text ?? "",
+          friendlinessScore: report.friendliness_score,
+          nickname: report.nickname ?? "",
+        });
+      }
+      setPinState(null);
+      setPinVerifying(false);
+    }
+  }
 
   if (loading) return <div className="text-center text-gray-400 py-20">불러오는 중...</div>;
   if (!clinic) return <div className="text-center text-gray-400 py-20">치과를 찾을 수 없습니다</div>;
+
+  // visit_id로 그룹핑 (같은 방문은 카드 하나로)
+  const visitGroups: Map<string, UserReport[]> = new Map();
+  for (const r of userReports) {
+    const key = r.visit_id ?? r.report_id;
+    if (!visitGroups.has(key)) visitGroups.set(key, []);
+    visitGroups.get(key)!.push(r);
+  }
+  const groupedVisits = [...visitGroups.values()];
+
+  const totalReports = userReports.length;
+  const noExtraTotal = userReports.filter((r) => !r.extra_recommended).length;
+  const noExtraPct = totalReports > 0 ? Math.round((noExtraTotal / totalReports) * 100) : null;
+  const extraPct = noExtraPct !== null ? 100 - noExtraPct : null;
+  const friendlinessScores = userReports.map((r) => r.friendliness_score).filter((s): s is number => s !== null);
+  const avgFriendliness = friendlinessScores.length > 0
+    ? Math.round((friendlinessScores.reduce((a, b) => a + b, 0) / friendlinessScores.length) * 10) / 10
+    : null;
 
   return (
     <div>
@@ -66,23 +197,18 @@ export default function ClinicDetailPage() {
         </div>
       )}
 
-      {/* 치과 기본 정보 */}
+      {/* 기본 정보 */}
       <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
         <h1 className="text-xl font-bold text-gray-900">{clinic.name}</h1>
         <div className="text-sm text-gray-500 mt-1">{clinic.address}</div>
         {clinic.phone && (
-          <a href={`tel:${clinic.phone}`} className="text-sm text-blue-500 mt-1 block">
-            {clinic.phone}
-          </a>
+          <a href={`tel:${clinic.phone}`} className="text-sm text-blue-500 mt-1 block">{clinic.phone}</a>
         )}
-        <div className="text-xs text-gray-400 mt-1">
-          {clinic.city} {clinic.district}
-        </div>
+        <div className="text-xs text-gray-400 mt-1">{clinic.city} {clinic.district}</div>
         {clinic.lat && clinic.lng && (
           <a
             href={`https://map.kakao.com/link/map/${encodeURIComponent(clinic.name)},${clinic.lat},${clinic.lng}`}
-            target="_blank"
-            rel="noopener noreferrer"
+            target="_blank" rel="noopener noreferrer"
             className="mt-3 inline-flex items-center gap-1 text-sm bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-medium px-3 py-1.5 rounded-lg transition"
           >
             🗺️ 카카오맵에서 길찾기
@@ -90,52 +216,170 @@ export default function ClinicDetailPage() {
         )}
       </div>
 
-      {/* 가격 정보 */}
-      <div className="bg-white rounded-xl border border-gray-200 p-5">
-        <h2 className="font-bold text-gray-900 mb-3">
-          가격 정보
-          <span className="ml-2 text-sm font-normal text-gray-400">커뮤니티 제보</span>
-        </h2>
-        {prices.length === 0 ? (
-          <div className="text-sm text-gray-400 py-4 text-center">
-            아직 가격 정보가 없습니다
+      {/* 유저 제보 요약 */}
+      <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-bold text-gray-900">
+            가격 & 경험 제보
+            {groupedVisits.length > 0 && <span className="ml-2 text-sm font-normal text-gray-400">{groupedVisits.length}건</span>}
+          </h2>
+          <div className="flex items-center gap-2">
+            {avgFriendliness !== null && (
+              <span className="text-sm font-semibold px-2.5 py-1 rounded-full bg-blue-50 text-blue-700">
+                {FRIENDLINESS_EMOJI[Math.round(avgFriendliness)]} 친절도 {avgFriendliness}
+              </span>
+            )}
+            {extraPct !== null && (
+              <span className={`text-sm font-semibold px-2.5 py-1 rounded-full ${
+                extraPct === 0 ? "bg-green-100 text-green-700"
+                  : extraPct <= 50 ? "bg-yellow-100 text-yellow-700"
+                  : "bg-red-100 text-red-700"
+              }`}>
+                추가권유 있음 {extraPct}%
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* 제보 목록 (visit_id 기준 그룹) */}
+        {groupedVisits.length > 0 && (
+          <ul className="space-y-2 mb-4">
+            {groupedVisits.map((group) => {
+              const first = group[0];
+              const groupKey = first.visit_id ?? first.report_id;
+              const treatments = group.map((r) => r.treatment_name).join(", ");
+              const isEditing = editingReport?.reportId === first.report_id;
+              const isPinTarget = pinState?.reportId === first.report_id;
+
+              return (
+                <li key={groupKey} className="rounded-xl border border-gray-100 bg-gray-50 p-3 text-sm">
+                  {isEditing ? (
+                    <PriceReportForm
+                      clinicId={clinic.clinic_id}
+                      initialValues={editingReport}
+                      onSuccess={handleFormSuccess}
+                      onCancel={() => setEditingReport(null)}
+                    />
+                  ) : isPinTarget ? (
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium text-gray-700">
+                        {pinState.action === "edit" ? "수정하려면" : "삭제하려면"} 비번 4자리를 입력하세요
+                      </p>
+                      <input
+                        type="password"
+                        inputMode="numeric"
+                        value={pinInput}
+                        onChange={(e) => { setPinInput(e.target.value.replace(/[^0-9]/g, "").slice(0, 4)); setPinError(false); }}
+                        placeholder="숫자 4자리"
+                        maxLength={4}
+                        autoFocus
+                        className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm text-gray-900 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      {pinError && <p className="text-xs text-red-500">비번이 틀렸습니다</p>}
+                      <div className="flex gap-2">
+                        <button onClick={() => setPinState(null)} className="flex-1 border border-gray-300 text-gray-600 text-sm font-medium py-2 rounded-xl hover:bg-gray-100 transition">취소</button>
+                        <button
+                          onClick={handlePinSubmit}
+                          disabled={pinInput.length !== 4 || pinVerifying}
+                          className={`flex-1 text-sm font-medium py-2 rounded-xl transition disabled:opacity-50 ${pinState.action === "delete" ? "bg-red-500 hover:bg-red-600 text-white" : "bg-blue-600 hover:bg-blue-700 text-white"}`}
+                        >
+                          {pinVerifying ? "확인 중..." : pinState.action === "delete" ? "삭제" : "확인"}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="space-y-0.5 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-medium text-gray-800">{treatments}</span>
+                          {first.price != null && <span className="text-blue-600 font-semibold">{first.price.toLocaleString()}원</span>}
+                          {first.extra_recommended
+                            ? <span className="text-xs bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded">추가권유 있음</span>
+                            : <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded">추가권유 없음</span>
+                          }
+                          {first.friendliness_score != null && (
+                            <span className="text-xs text-gray-500">{FRIENDLINESS_EMOJI[first.friendliness_score]} {first.friendliness_score}점</span>
+                          )}
+                        </div>
+                        {first.extra_note && <div className="text-xs text-gray-500">💬 권유내용: {first.extra_note}</div>}
+                        {first.review_text && <div className="text-xs text-gray-600 mt-1 leading-relaxed">"{first.review_text}"</div>}
+                        <div className="text-xs text-gray-400">
+                          {first.nickname ?? "익명"}
+                          {first.visit_date && ` · 진료 ${new Date(first.visit_date).toLocaleDateString("ko-KR")}`}
+                          {` · 제보 ${new Date(first.created_at).toLocaleDateString("ko-KR")}`}
+                        </div>
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        <button onClick={() => openPinPrompt(first.report_id, "edit")} className="text-xs text-blue-500 hover:text-blue-700 px-2 py-1 rounded border border-blue-200 hover:border-blue-400 transition">수정</button>
+                        <button onClick={() => openPinPrompt(first.report_id, "delete")} className="text-xs text-red-400 hover:text-red-600 px-2 py-1 rounded border border-red-200 hover:border-red-400 transition">삭제</button>
+                      </div>
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+
+        {!userReports.length && !showForm && (
+          <p className="text-sm text-gray-400 text-center py-4 mb-4">
+            아직 제보가 없습니다. 첫 번째 제보자가 되어보세요!
+          </p>
+        )}
+
+        {/* 제보 성공 메시지 */}
+        {submitted && (
+          <div className="bg-green-50 border border-green-200 text-green-700 text-sm rounded-xl px-4 py-3 mb-4">
+            제보해 주셔서 감사합니다! 다른 분들께 큰 도움이 됩니다.
+          </div>
+        )}
+
+        {/* 새 제보 폼 */}
+        {showForm ? (
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-gray-800">경험 제보하기</h3>
+              <button onClick={() => setShowForm(false)} className="text-sm text-gray-400 hover:text-gray-600">닫기</button>
+            </div>
+            <PriceReportForm clinicId={clinic.clinic_id} onSuccess={handleFormSuccess} />
           </div>
         ) : (
+          !editingReport && (
+            <button
+              onClick={() => { setShowForm(true); setSubmitted(false); }}
+              className="w-full border-2 border-dashed border-blue-300 hover:border-blue-500 text-blue-500 hover:text-blue-600 font-medium py-3 rounded-xl text-sm transition"
+            >
+              + 내 경험 제보하기
+            </button>
+          )
+        )}
+      </div>
+
+      {/* 커뮤니티 가격 정보 */}
+      {communityPrices.length > 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <h2 className="font-bold text-gray-900 mb-3">
+            가격 정보 <span className="ml-2 text-sm font-normal text-gray-400">커뮤니티 수집</span>
+          </h2>
           <ul className="divide-y divide-gray-100">
-            {prices.map((p) => (
+            {communityPrices.map((p) => (
               <li key={p.report_id} className="py-3">
                 <div className="flex justify-between items-start">
                   <div>
                     <div className="font-medium text-gray-900">{p.treatment_name}</div>
-                    {p.note && (
-                      <div className="text-sm text-gray-500 mt-0.5">{p.note}</div>
-                    )}
+                    {p.raw_text && <div className="text-sm text-gray-500 mt-0.5 line-clamp-2">{p.raw_text}</div>}
                     <div className="text-xs text-gray-400 mt-1">
-                      {new Date(p.reported_at).toLocaleDateString("ko-KR")}
-                      {p.source_url && (
-                        <>
-                          {" · "}
-                          <a
-                            href={p.source_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-400 hover:underline"
-                          >
-                            출처
-                          </a>
-                        </>
-                      )}
+                      {p.post_date && new Date(p.post_date).toLocaleDateString("ko-KR")}
+                      {p.post_url && <> · <a href={p.post_url} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">출처</a></>}
                     </div>
                   </div>
-                  <div className="text-lg font-bold text-blue-600 ml-4 shrink-0">
-                    {p.price.toLocaleString()}원
-                  </div>
+                  <div className="text-lg font-bold text-blue-600 ml-4 shrink-0">{p.price.toLocaleString()}원</div>
                 </div>
               </li>
             ))}
           </ul>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
