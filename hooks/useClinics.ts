@@ -34,7 +34,10 @@ export function useClinics({ tab, userPos, city, district, search, page, priceRe
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    setClinics([]);
+    // search가 빈 문자열로 초기화될 때만 clinics를 비움 (검색 후 뒤로가기 방지)
+    if (search === "") {
+      setClinics([]);
+    }
   }, [tab, city, district, search, userPos, priceReportOnly]);
 
   useEffect(() => {

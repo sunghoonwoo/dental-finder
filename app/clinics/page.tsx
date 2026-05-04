@@ -23,13 +23,14 @@ export default function ClinicsPage() {
   const [city, setCity] = useState("서울");
   const [district, setDistrict] = useState("");
   const [districts, setDistricts] = useState<string[]>([]);
-  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [priceReportOnly, setPriceReportOnly] = useState(false);
   const [page, setPage] = useState(0);
   const [selectedClinicId, setSelectedClinicId] = useState<string | null>(null);
   const router = useRouter();
 
-  const { clinics, loading, pagedClinics } = useClinics({ tab, userPos, city, district, search, page, priceReportOnly });
+  const { clinics, loading, pagedClinics } = useClinics({ tab, userPos, city, district, search: searchQuery, page, priceReportOnly });
 
   // 캐시된 위치 복원
   useEffect(() => {
@@ -148,7 +149,10 @@ export default function ClinicsPage() {
               </button>
             </div>
           )}
-          <input type="text" placeholder="치과명으로 검색 (선택)" value={search} onChange={(e) => setSearch(e.target.value)} className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+           <div className="relative">
+             <input type="text" placeholder="치과명으로 검색 (선택)" value={searchInput} onChange={(e) => setSearchInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); setSearchQuery(searchInput); }}} className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+             <button onClick={() => setSearchQuery(searchInput)} className="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-blue-500 hover:text-blue-700 px-2">검색</button>
+           </div>
           <button onClick={() => setPriceReportOnly((v) => !v)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition ${priceReportOnly ? "bg-orange-500 text-white border-orange-500" : "bg-white text-orange-500 border-orange-300 hover:border-orange-500"}`}>
             <span>📋</span><span>{priceReportOnly ? "제보 있는 곳만 ✕" : "제보 있는 곳만"}</span>
           </button>
@@ -166,12 +170,13 @@ export default function ClinicsPage() {
              const badge = getReportBadge(c.reportSummary);
              return (
                <li key={c.clinic_id} id={`clinic-${c.clinic_id}`}>
-                 <div
-                   onClick={() => {
-                     setSelectedClinicId(c.clinic_id);
+                 <Link
+                   href={`/clinics/${c.clinic_id}`}
+                   onClick={(e) => {
+                     e.preventDefault();
                      router.push(`/clinics/${c.clinic_id}`);
                    }}
-                   className={`flex justify-between items-start bg-white rounded-xl border px-4 py-3 hover:border-blue-400 hover:shadow-sm transition cursor-pointer ${selectedClinicId === c.clinic_id ? "border-blue-400 shadow-sm bg-blue-50" : "border-gray-200"}`}
+                   className={`flex justify-between items-start bg-white rounded-xl border px-4 py-3 hover:border-blue-400 hover:shadow-sm transition ${selectedClinicId === c.clinic_id ? "border-blue-400 shadow-sm bg-blue-50" : "border-gray-200"}`}
                  >
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -191,7 +196,7 @@ export default function ClinicsPage() {
                       </div>
                     )}
                   </div>
-                 </div>
+                 </Link>
                </li>
              );
            })}
