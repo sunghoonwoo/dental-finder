@@ -60,11 +60,13 @@ export function useClinics({ tab, userPos, city, district, search, page, priceRe
 
         if (clinicIds.length === 0) { setClinics([]); setLoading(false); return; }
 
-        // 제보 있는 치과 ID만 필터링 (clinicIds 사용)
+        // 제보 있는 치과 ID만 필터링 (clinicIds 사용) - clinic_id 중복 제거
+        const uniqueClinicIds = [...new Set(clinicIds)];
         let q = supabase
           .from("clinics")
           .select("clinic_id, name, address, city, district, phone, lat, lng")
-          .in("clinic_id", clinicIds);
+          .eq("is_active", true)
+          .in("clinic_id", uniqueClinicIds);
         
         // 검색 조건 적용 (priceReportOnly 모드에서는 검색만 지원)
         if (search && search.trim()) q = q.ilike("name", `%${search.trim()}%`);
