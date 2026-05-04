@@ -5,7 +5,9 @@ export type ReportSummary = {
 
 export type ReportRecord = {
   clinic_id: string;
+  report_id: string;
   extra_recommended: boolean;
+  visit_id: string | null;
 };
 
 export function calcDistance(lat1: number, lng1: number, lat2: number, lng2: number) {
@@ -22,13 +24,22 @@ export function calcDistance(lat1: number, lng1: number, lat2: number, lng2: num
 
 export function computeReportSummaries(reports: ReportRecord[]): Map<string, ReportSummary> {
   const map = new Map<string, ReportSummary>();
+  const seenReportIds = new Set<string>();
+
   for (const r of reports) {
+    // 같은 report_id는 중복 카운트하지 않음
+    if (seenReportIds.has(r.report_id)) continue;
+    seenReportIds.add(r.report_id);
+
     const existing = map.get(r.clinic_id);
     if (existing) {
       existing.count++;
       if (!r.extra_recommended) existing.noExtraCount++;
     } else {
-      map.set(r.clinic_id, { count: 1, noExtraCount: r.extra_recommended ? 0 : 1 });
+      map.set(r.clinic_id, {
+        count: 1,
+        noExtraCount: r.extra_recommended ? 0 : 1,
+      });
     }
   }
   return map;
