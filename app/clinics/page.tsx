@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import NearbyMap from "@/components/NearbyMap";
 import { useClinics } from "@/hooks/useClinics";
@@ -23,12 +22,30 @@ export default function ClinicsPage() {
   const [city, setCity] = useState("서울");
   const [district, setDistrict] = useState("");
   const [districts, setDistricts] = useState<string[]>([]);
-  const [search, setSearch] = useState("");
+  
+  // 검색 상태 - ref로 관리하여 훅 재실행 방지
+  const [inputValue, setInputValue] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const searchRef = useRef("");
+  
   const [priceReportOnly, setPriceReportOnly] = useState(false);
   const [page, setPage] = useState(0);
   const router = useRouter();
 
-  const { clinics, loading, pagedClinics } = useClinics({ tab, userPos, city, district, search, page, priceReportOnly });
+  const { clinics, loading, pagedClinics } = useClinics({ 
+    tab, userPos, city, district, 
+    search: debouncedSearch, 
+    page, priceReportOnly 
+  });
+
+  // 디바운스 검색
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      searchRef.current = inputValue;
+      setDebouncedSearch(inputValue);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [inputValue]);
 
   // 캐시된 위치 복원
   useEffect(() => {
@@ -52,7 +69,7 @@ export default function ClinicsPage() {
   }, [city]);
 
   // 페이지 리셋
-  useEffect(() => { setPage(0); }, [tab, city, district, search, userPos, priceReportOnly]);
+  useEffect(() => { setPage(0); }, [tab, city, district, debouncedSearch, userPos, priceReportOnly]);
 
   function requestLocation() {
     if (!navigator.geolocation) { setGeoError("이 브라우저는 위치 서비스를 지원하지 않습니다"); return; }
@@ -68,6 +85,11 @@ export default function ClinicsPage() {
       () => { setGeoError("위치 권한이 거부됐습니다. 지역으로 찾기를 이용해주세요."); setGeoLoading(false); }
     );
   }
+
+  // 클릭 핸들러 - e.preventDefault 없이 순수하게 처리
+  const handleClinicClick = useCallback((clinicId: string) => {
+    router.push(`/clinics/${clinicId}`);
+  }, [router]);
 
   return (
     <div>
@@ -108,7 +130,7 @@ export default function ClinicsPage() {
             }))}
             selectedId={null}
             onSelect={(id) => {
-              router.push(`/clinics/${id}`);
+              handleClinicClick(id);
             }}
           />
         </div>
@@ -149,8 +171,8 @@ export default function ClinicsPage() {
           <input
             type="text"
             placeholder="치과명으로 검색 (선택)"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
             className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <button onClick={() => setPriceReportOnly((v) => !v)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition ${priceReportOnly ? "bg-orange-500 text-white border-orange-500" : "bg-white text-orange-500 border-orange-300 hover:border-orange-500"}`}>
@@ -159,7 +181,7 @@ export default function ClinicsPage() {
         </div>
       )}
 
-      {/* 목록 - 순수 Link 사용 */}
+      {/* 목록 */}
       {loading ? (
         <div className="text-center text-gray-400 py-20">불러오는 중...</div>
       ) : pagedClinics.length === 0 && (tab === "region" || userPos) ? (
@@ -171,7 +193,7 @@ export default function ClinicsPage() {
             return (
               <li key={c.clinic_id} id={`clinic-${c.clinic_id}`}>
                 <div
-                  onClick={() => router.push(`/clinics/${c.clinic_id}`)}
+                  onClick={() => handleClinicClick(c.clinic_id)}
                   className="flex justify-between items-start bg-white rounded-xl border px-4 py-3 hover:border-blue-400 hover:shadow-sm transition cursor-pointer"
                 >
                   <div className="min-w-0">
