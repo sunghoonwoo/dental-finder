@@ -5,7 +5,7 @@ import "./globals.css";
 const geist = Geist({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "양심치과 찾기",
+  title: "우리동네 양심치과",
   description: "과잉진료 없는 양심치과를 찾아드립니다",
 };
 
@@ -17,7 +17,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <div className="max-w-4xl mx-auto px-4 h-14 flex items-center gap-2">
             <a href="/" className="flex items-center gap-2">
               <span className="text-2xl">🦷</span>
-              <span className="font-bold text-gray-900">양심치과 찾기</span>
+              <span className="font-bold text-gray-900">우리동네 양심치과</span>
             </a>
           </div>
         </header>
