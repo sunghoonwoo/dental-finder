@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import NearbyMap from "@/components/NearbyMap";
 import { useClinics } from "@/hooks/useClinics";
 import { getReportBadge, getBadgeHex } from "@/lib/clinicUtils";
@@ -23,9 +24,9 @@ export default function ClinicsPage() {
   const [district, setDistrict] = useState("");
   const [districts, setDistricts] = useState<string[]>([]);
   const [search, setSearch] = useState("");
-  const [inputValue, setInputValue] = useState("");
   const [priceReportOnly, setPriceReportOnly] = useState(false);
   const [page, setPage] = useState(0);
+  const router = useRouter();
 
   const { clinics, loading, pagedClinics } = useClinics({ tab, userPos, city, district, search, page, priceReportOnly });
 
@@ -52,14 +53,6 @@ export default function ClinicsPage() {
 
   // 페이지 리셋
   useEffect(() => { setPage(0); }, [tab, city, district, search, userPos, priceReportOnly]);
-
-  // 디바운스 검색
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setSearch(inputValue);
-    }, 400);
-    return () => clearTimeout(timer);
-  }, [inputValue]);
 
   function requestLocation() {
     if (!navigator.geolocation) { setGeoError("이 브라우저는 위치 서비스를 지원하지 않습니다"); return; }
@@ -99,7 +92,7 @@ export default function ClinicsPage() {
           </select>
           <select value={district} onChange={(e) => setDistrict(e.target.value)} className="flex-1 border border-gray-300 rounded-xl px-3 py-2.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option value="">전체 구/군</option>
-            {districts.map((d) => <option key={d} value={d}>{d}</option>}
+            {districts.map((d) => <option key={d} value={d}>{d}</option>)}
           </select>
         </div>
       )}
@@ -115,7 +108,7 @@ export default function ClinicsPage() {
             }))}
             selectedId={null}
             onSelect={(id) => {
-              window.location.href = `/clinics/${id}`;
+              router.push(`/clinics/${id}`);
             }}
           />
         </div>
@@ -156,8 +149,8 @@ export default function ClinicsPage() {
           <input
             type="text"
             placeholder="치과명으로 검색 (선택)"
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
             className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <button onClick={() => setPriceReportOnly((v) => !v)} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition ${priceReportOnly ? "bg-orange-500 text-white border-orange-500" : "bg-white text-orange-500 border-orange-300 hover:border-orange-500"}`}>
@@ -179,7 +172,7 @@ export default function ClinicsPage() {
               <li key={c.clinic_id} id={`clinic-${c.clinic_id}`}>
                 <Link
                   href={`/clinics/${c.clinic_id}`}
-                  className={`flex justify-between items-start bg-white rounded-xl border px-4 py-3 hover:border-blue-400 hover:shadow-sm transition block ${badge.color ? '' : ''}`}
+                  className="flex justify-between items-start bg-white rounded-xl border px-4 py-3 hover:border-blue-400 hover:shadow-sm transition block"
                 >
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
