@@ -74,8 +74,8 @@ export function useClinics({ tab, userPos, city, district, search, page, priceRe
           q = q.eq("city", city);
           if (district) q = q.eq("district", district);
         }
-      }
         if (search && search.trim()) q = q.ilike("name", `%${search.trim()}%`);
+      }
 
         const { data } = await q;
         let result: Clinic[] = (data ?? []).map((c: any) => ({ ...c, reportSummary: summaries.get(c.clinic_id) }));
