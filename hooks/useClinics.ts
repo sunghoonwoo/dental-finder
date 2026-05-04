@@ -56,7 +56,7 @@ export function useClinics({ tab, userPos, city, district, search, page, priceRe
         const { data: rdata } = await supabase.from("user_price_reports").select("clinic_id, extra_recommended");
         const reports = (rdata ?? []) as ReportRecord[];
         const summaries = computeReportSummaries(reports);
-        const clinicIds = [...summaries.keys()];
+        const clinicIds = [...new Set([...summaries.keys()])];
 
         if (clinicIds.length === 0) { setClinics([]); setLoading(false); return; }
 
