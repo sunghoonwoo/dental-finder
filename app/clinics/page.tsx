@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import NearbyMap from "@/components/NearbyMap";
 import { useClinics } from "@/hooks/useClinics";
 import { getReportBadge, getBadgeHex } from "@/lib/clinicUtils";
@@ -26,6 +27,7 @@ export default function ClinicsPage() {
   const [priceReportOnly, setPriceReportOnly] = useState(false);
   const [page, setPage] = useState(0);
   const [selectedClinicId, setSelectedClinicId] = useState<string | null>(null);
+  const router = useRouter();
 
   const { clinics, loading, pagedClinics } = useClinics({ tab, userPos, city, district, search, page, priceReportOnly });
 
@@ -161,14 +163,16 @@ export default function ClinicsPage() {
       ) : (
         <ul className="space-y-2">
           {pagedClinics.map((c) => {
-            const badge = getReportBadge(c.reportSummary);
-            return (
-              <li key={c.clinic_id} id={`clinic-${c.clinic_id}`}>
-                <Link
-                  href={`/clinics/${c.clinic_id}`}
-                  onClick={() => setSelectedClinicId(c.clinic_id)}
-                  className={`flex justify-between items-start bg-white rounded-xl border px-4 py-3 hover:border-blue-400 hover:shadow-sm transition ${selectedClinicId === c.clinic_id ? "border-blue-400 shadow-sm bg-blue-50" : "border-gray-200"}`}
-                >
+             const badge = getReportBadge(c.reportSummary);
+             return (
+               <li key={c.clinic_id} id={`clinic-${c.clinic_id}`}>
+                 <div
+                   onClick={() => {
+                     setSelectedClinicId(c.clinic_id);
+                     router.push(`/clinics/${c.clinic_id}`);
+                   }}
+                   className={`flex justify-between items-start bg-white rounded-xl border px-4 py-3 hover:border-blue-400 hover:shadow-sm transition cursor-pointer ${selectedClinicId === c.clinic_id ? "border-blue-400 shadow-sm bg-blue-50" : "border-gray-200"}`}
+                 >
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${badge.color}`} title={badge.label} />
@@ -187,10 +191,10 @@ export default function ClinicsPage() {
                       </div>
                     )}
                   </div>
-                </Link>
-              </li>
-            );
-          })}
+                 </div>
+               </li>
+             );
+           })}
         </ul>
       )}
 
