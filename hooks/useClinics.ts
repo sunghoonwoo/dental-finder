@@ -69,9 +69,11 @@ export function useClinics({ tab, userPos, city, district, search, page, priceRe
         if (tab === "nearby" && userPos) {
           q = q.gte("lat", userPos.lat - delta).lte("lat", userPos.lat + delta)
                .gte("lng", userPos.lng - delta).lte("lng", userPos.lng + delta);
-      } else if (tab === "region" && city) {
-        q = q.eq("city", city);
-        if (district) q = q.eq("district", district);
+      } else if (tab === "region") {
+        if (city) {
+          q = q.eq("city", city);
+          if (district) q = q.eq("district", district);
+        }
       }
         if (search && search.trim()) q = q.ilike("name", `%${search.trim()}%`);
 

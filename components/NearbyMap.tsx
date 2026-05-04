@@ -119,7 +119,7 @@ export default function NearbyMap({ userPos, clinics, selectedId, onSelect }: Pr
       let script = document.querySelector<HTMLScriptElement>('script[src*="dapi.kakao.com/v2/maps"]');
       if (!script) {
         script = document.createElement("script");
-        script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${process.env.NEXT_PUBLIC_KAKAO_MAP_KEY}&autoload=false`;
+        script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${process.env.NEXT_PUBLIC_KAKAO_JS_KEY}&autoload=false`;
         document.head.appendChild(script);
       }
       script.addEventListener("load", createMap);
