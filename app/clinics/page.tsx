@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import NearbyMap from "@/components/NearbyMap";
 import { useClinics } from "@/hooks/useClinics";
@@ -170,9 +169,9 @@ export default function ClinicsPage() {
             const badge = getReportBadge(c.reportSummary);
             return (
               <li key={c.clinic_id} id={`clinic-${c.clinic_id}`}>
-                <Link
-                  href={`/clinics/${c.clinic_id}`}
-                  className="flex justify-between items-start bg-white rounded-xl border px-4 py-3 hover:border-blue-400 hover:shadow-sm transition block"
+                <div
+                  onClick={() => router.push(`/clinics/${c.clinic_id}`)}
+                  className="flex justify-between items-start bg-white rounded-xl border px-4 py-3 hover:border-blue-400 hover:shadow-sm transition cursor-pointer"
                 >
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -192,7 +191,7 @@ export default function ClinicsPage() {
                       </div>
                     )}
                   </div>
-                </Link>
+                </div>
               </li>
             );
           })}
