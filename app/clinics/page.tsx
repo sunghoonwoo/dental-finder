@@ -9,7 +9,7 @@ import { getReportBadge, getBadgeHex } from "@/lib/clinicUtils";
 
 type Tab = "nearby" | "region";
 
-const CITIES = ["서울", "경기", "부산", "인천", "대구", "광주", "대전", "울산", "세종", "강원", "충북", "충남", "전북", "전남", "경북", "경남", "제주"];
+const CITIES = ["전국", "서울", "경기", "부산", "인천", "대구", "광주", "대전", "울산", "세종", "강원", "충북", "충남", "전북", "전남", "경북", "경남", "제주"];
 const PAGE_SIZE = 20;
 const LOCATION_CACHE_KEY = "dental_user_location";
 const LOCATION_CACHE_TTL = 24 * 60 * 60 * 1000;
@@ -18,11 +18,11 @@ function ClinicsPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const [tab, setTab] = useState<Tab>(() => (searchParams.get("tab") as Tab) || "nearby");
+  const [tab, setTab] = useState<Tab>(() => (searchParams.get("tab") as Tab) || "region");
   const [userPos, setUserPos] = useState<{ lat: number; lng: number } | null>(null);
   const [geoError, setGeoError] = useState<string | null>(null);
   const [geoLoading, setGeoLoading] = useState(false);
-  const [city, setCity] = useState(() => searchParams.get("city") || "서울");
+  const [city, setCity] = useState(() => searchParams.get("city") || "전국");
   const [district, setDistrict] = useState(() => searchParams.get("district") || "");
   const [districts, setDistricts] = useState<string[]>([]);
 
@@ -33,7 +33,28 @@ function ClinicsPageContent() {
   const [priceReportOnly, setPriceReportOnly] = useState(false);
   const [page, setPage] = useState(0);
 
-  // 검색어 변경 감지 및 URL 업데이트 (디바운스)
+  // "전국" 선택 시 city 값을 빈 문자열로 처리
+  const effectiveCity = city === "전국" ? "" : city;
+
+  const { clinics, loading, pagedClinics } = useClinics({
+    tab, userPos, city: effectiveCity, district, search, page, priceReportOnly
+  });
+
+  // URL 쿼리 동기화 (뒤로가기/앞으로가기 지원)
+  useEffect(() => {
+    const q = searchParams.get("q") || "";
+    const cityParam = searchParams.get("city") || "전국";
+    const districtParam = searchParams.get("district") || "";
+    const tabParam = (searchParams.get("tab") as Tab) || "region";
+
+    if (q !== search) setSearch(q);
+    if (q !== inputValue) setInputValue(q);
+    if (cityParam !== city) setCity(cityParam);
+    if (districtParam !== district) setDistrict(districtParam);
+    if (tabParam !== tab) setTab(tabParam);
+  }, [searchParams]);
+
+  // 검색어 디바운스 (입력 후 300ms 뒤에 반영)
   useEffect(() => {
     const timer = setTimeout(() => {
       if (inputValue !== search) {
@@ -51,27 +72,6 @@ function ClinicsPageContent() {
     return () => clearTimeout(timer);
   }, [inputValue]);
 
-  // URL 파라미터 변경 시 상태 동기화
-  useEffect(() => {
-    const q = searchParams.get("q") || "";
-    const cityParam = searchParams.get("city") || "서울";
-    const districtParam = searchParams.get("district") || "";
-    const tabParam = (searchParams.get("tab") as Tab) || "nearby";
-
-    if (q !== search) setSearch(q);
-    if (q !== inputValue) setInputValue(q);
-    if (cityParam !== city) setCity(cityParam);
-    if (districtParam !== district) setDistrict(districtParam);
-    if (tabParam !== tab) setTab(tabParam);
-  }, [searchParams]);
-
-  const { clinics, loading, pagedClinics } = useClinics({
-    tab, userPos, city, district,
-    search,
-    page,
-    priceReportOnly
-  });
-
   // 캐시된 위치 복원
   useEffect(() => {
     try {
@@ -83,8 +83,13 @@ function ClinicsPageContent() {
     } catch {}
   }, []);
 
-  // 구/군 목록 로드
+  // 구/군 목록 로드 ("전국"일 때는 빈 배열)
   useEffect(() => {
+    if (city === "전국") {
+      setDistricts([]);
+      setDistrict("");
+      return;
+    }
     supabase
       .rpc("get_districts", { p_city: city })
       .then(({ data }) => {
@@ -159,21 +164,23 @@ function ClinicsPageContent() {
           >
             {CITIES.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
-          <select
-            value={district}
-            onChange={(e) => {
-              setDistrict(e.target.value);
-              updateURL({ district: e.target.value, page: "" });
-            }}
-            className="flex-1 border border-gray-300 rounded-xl px-3 py-2.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">전체 구/군</option>
-            {districts.map((d) => <option key={d} value={d}>{d}</option>)}
-          </select>
+          {city !== "전국" && (
+            <select
+              value={district}
+              onChange={(e) => {
+                setDistrict(e.target.value);
+                updateURL({ district: e.target.value, page: "" });
+              }}
+              className="flex-1 border border-gray-300 rounded-xl px-3 py-2.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">전체 구/군</option>
+              {districts.map((d) => <option key={d} value={d}>{d}</option>)}
+            </select>
+          )}
         </div>
       )}
 
-      {/* 지도 */}
+      {/* 지도 - userPos가 있을 때만 표시, NearbyMap 컴포넌트 수정 필요 */}
       {tab === "nearby" && userPos && (
         <div className="mb-4">
           <NearbyMap
