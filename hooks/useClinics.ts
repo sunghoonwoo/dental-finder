@@ -56,21 +56,24 @@ export function useClinics({ tab, userPos, city, district, search, page, priceRe
       // user_price_reports에서 제보가 있는 clinic_id들 조회 (중복 제거)
       const { data: rdata } = await supabase
         .from("user_price_reports")
-        .select("clinic_id");
-      
+        .select("clinic_id, extra_recommended");
+
       // clinic_id 중복 제거
       const clinicIdsWithReports = [...new Set((rdata ?? []).map(r => r.clinic_id))];
-      
+
       if (clinicIdsWithReports.length === 0) { setClinics([]); setLoading(false); return; }
-      
+
+      // Compute summaries from all reports
+      const summaries = computeReportSummaries((rdata ?? []) as ReportRecord[]);
+
       let q = supabase
         .from("clinics")
         .select("clinic_id, name, address, city, district, phone, lat, lng")
         .in("clinic_id", clinicIdsWithReports);
-        
+
         // 검색 조건 적용 (priceReportOnly 모드에서는 검색만 지원)
         if (search && search.trim()) q = q.ilike("name", `%${search.trim()}%`);
-        
+
         const { data } = await q;
         let result: Clinic[] = (data ?? []).map((c: any) => ({ ...c, reportSummary: summaries.get(c.clinic_id) }));
         if (tab === "nearby") result = withDistances(result);
