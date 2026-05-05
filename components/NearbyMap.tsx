@@ -19,15 +19,17 @@ type Props = {
   clinics: MapClinic[];
   selectedId: string | null;
   onSelect: (id: string) => void;
+  onDoubleClick?: (id: string) => void;
   onBoundsChanged?: (bounds: { sw: { lat: number; lng: number }; ne: { lat: number; lng: number } }) => void;
 };
 
-export default function NearbyMap({ userPos, clinics, selectedId, onSelect, onBoundsChanged }: Props) {
+export default function NearbyMap({ userPos, clinics, selectedId, onSelect, onDoubleClick, onBoundsChanged }: Props) {
   const mapRef = useRef<HTMLDivElement>(null);
   const kakaoMapRef = useRef<any>(null);
   const overlaysRef = useRef<any[]>([]);
   const mapReadyRef = useRef(false);
   const onBoundsChangedRef = useRef(onBoundsChanged);
+  const onDoubleClickRef = useRef(onDoubleClick);
 
   // Inject pulse animation styles
   useEffect(() => {
@@ -50,6 +52,9 @@ export default function NearbyMap({ userPos, clinics, selectedId, onSelect, onBo
       if (el) el.remove();
     };
   }, []);
+
+  const clickTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastClickTimeRef = useRef(0);
 
   const clinicsRef = useRef(clinics);
   const selectedIdRef = useRef(selectedId);
@@ -113,7 +118,25 @@ export default function NearbyMap({ userPos, clinics, selectedId, onSelect, onBo
           container.appendChild(label);
         }
 
-        container.addEventListener("click", () => onSelectRef.current(c.clinic_id));
+        container.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const now = Date.now();
+          if (now - lastClickTimeRef.current < 300) {
+            // Double click detected
+            if (clickTimeoutRef.current) {
+              clearTimeout(clickTimeoutRef.current);
+              clickTimeoutRef.current = null;
+            }
+            lastClickTimeRef.current = 0;
+            onDoubleClickRef.current?.(c.clinic_id);
+          } else {
+            lastClickTimeRef.current = now;
+            clickTimeoutRef.current = setTimeout(() => {
+              onSelectRef.current(c.clinic_id);
+              clickTimeoutRef.current = null;
+            }, 300);
+          }
+        });
 
         const overlay = new window.kakao.maps.CustomOverlay({
           position: new window.kakao.maps.LatLng(c.lat, c.lng),

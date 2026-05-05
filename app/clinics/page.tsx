@@ -188,15 +188,16 @@ function ClinicsPageContent() {
       {/* 지도 - userPos가 있을 때만 표시, NearbyMap 컴포넌트 수정 필요 */}
       {tab === "nearby" && userPos && (
         <div className="mb-4">
-          <NearbyMap
-            userPos={userPos}
-            clinics={clinics.filter((c) => c.lat != null && c.lng != null).map((c) => ({
-              clinic_id: c.clinic_id, name: c.name, lat: c.lat!, lng: c.lng!,
-              color: getBadgeHex(c.reportSummary),
-            }))}
-            selectedId={null}
-            onSelect={(id) => handleClinicClick(id)}
-          />
+      <NearbyMap
+        userPos={userPos}
+        clinics={clinics.filter((c) => c.lat != null && c.lng != null).map((c) => ({
+          clinic_id: c.clinic_id, name: c.name, lat: c.lat!, lng: c.lng!,
+          color: getBadgeHex(c.reportSummary),
+        }))}
+        selectedId={null}
+        onSelect={(id) => handleClinicClick(id)}
+        onBoundsChanged={handleBoundsChanged}
+      />
         </div>
       )}
 
