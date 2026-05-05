@@ -96,25 +96,30 @@ export default function NearbyMap({ userPos, clinics, selectedId, onSelect, onDo
 
         container.appendChild(marker);
 
-        // Name label - only show when selected
+        // Name label - show above marker when selected
         if (isSelected) {
           const label = document.createElement("div");
           label.style.cssText = [
-            "margin-top:4px",
-            "padding:3px 8px",
+            "position:absolute",
+            "bottom:calc(100% + 8px)",
+            "left:50%",
+            "transform:translateX(-50%)",
+            "padding:4px 10px",
             "background:white",
-            "border-radius:4px",
-            "font-size:11px",
+            "border-radius:6px",
+            "font-size:12px",
             "color:#1f2937",
-            "font-weight:500",
-            "box-shadow:0 1px 3px rgba(0,0,0,0.2)",
+            "font-weight:600",
+            "box-shadow:0 2px 8px rgba(0,0,0,0.15)",
             "white-space:nowrap",
-            "max-width:140px",
+            "max-width:160px",
             "overflow:hidden",
             "text-overflow:ellipsis",
             "text-align:center",
+            "z-index:100",
           ].join(";");
           label.textContent = c.name;
+          container.style.position = "relative";
           container.appendChild(label);
         }
 

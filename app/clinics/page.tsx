@@ -33,10 +33,19 @@ function ClinicsPageContent() {
   const [priceReportOnly, setPriceReportOnly] = useState(false);
   const [page, setPage] = useState(0);
   const [mapBounds, setMapBounds] = useState<{ sw: { lat: number; lng: number }; ne: { lat: number; lng: number } } | null>(null);
+  const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null);
 
   const handleBoundsChanged = useCallback((bounds: { sw: { lat: number; lng: number }; ne: { lat: number; lng: number } }) => {
     setMapBounds(bounds);
   }, []);
+
+  const handleMarkerClick = useCallback((id: string) => {
+    setSelectedMarkerId((prev) => prev === id ? null : id);
+  }, []);
+
+  const handleMarkerDoubleClick = useCallback((id: string) => {
+    router.push(`/clinics/${id}`);
+  }, [router]);
 
   // "전국" 선택 시 city 값을 빈 문자열로 처리
   const effectiveCity = city === "전국" ? "" : city;
@@ -194,8 +203,9 @@ function ClinicsPageContent() {
           clinic_id: c.clinic_id, name: c.name, lat: c.lat!, lng: c.lng!,
           color: getBadgeHex(c.reportSummary),
         }))}
-        selectedId={null}
-        onSelect={(id) => handleClinicClick(id)}
+        selectedId={selectedMarkerId}
+        onSelect={(id) => handleMarkerClick(id)}
+        onDoubleClick={(id) => handleMarkerDoubleClick(id)}
         onBoundsChanged={handleBoundsChanged}
       />
         </div>
