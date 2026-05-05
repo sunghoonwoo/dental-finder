@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams, useRouter } from "next/navigation";
-import { useEffect, useState, useCallback, Suspense } from "react";
+import { useEffect, useState, useCallback, Suspense, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import NearbyMap from "@/components/NearbyMap";
 import { useClinics } from "@/hooks/useClinics";
@@ -33,10 +33,12 @@ function ClinicsPageContent() {
   const [priceReportOnly, setPriceReportOnly] = useState(false);
   const [page, setPage] = useState(0);
   const [mapBounds, setMapBounds] = useState<{ sw: { lat: number; lng: number }; ne: { lat: number; lng: number } } | null>(null);
+  const mapBoundsRef = useRef<{ sw: { lat: number; lng: number }; ne: { lat: number; lng: number } } | null>(null);
   const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null);
 
   const handleBoundsChanged = useCallback((bounds: { sw: { lat: number; lng: number }; ne: { lat: number; lng: number } }) => {
     setMapBounds(bounds);
+    mapBoundsRef.current = bounds;
   }, []);
 
   const handleMarkerClick = useCallback((id: string) => {
@@ -236,13 +238,20 @@ function ClinicsPageContent() {
       {/* 검색 + 필터 */}
       {(tab === "region" || userPos) && (
         <div className="mb-4 space-y-2">
-          {tab === "nearby" && userPos && (
-            <div className="flex justify-end">
-              <button onClick={requestLocation} disabled={geoLoading} className="text-xs text-gray-400 hover:text-blue-500 transition disabled:opacity-50">
-                {geoLoading ? "위치 가져오는 중..." : "📍 위치 새로고침"}
-              </button>
-            </div>
-          )}
+        {tab === "nearby" && userPos && (
+          <div className="flex justify-end gap-2 mb-2">
+            <button onClick={requestLocation} disabled={geoLoading} className="flex items-center gap-1.5 px-3 py-2 text-xs bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition disabled:opacity-50 shadow-sm">
+              {geoLoading ? "위치 가져오는 중..." : "📍 Search Near Me"}
+            </button>
+            <button onClick={() => {
+              if (mapBoundsRef.current) {
+                setMapBounds(mapBoundsRef.current);
+              }
+            }} className="flex items-center gap-1.5 px-3 py-2 text-xs bg-white hover:bg-gray-50 text-blue-600 font-medium rounded-lg transition border border-blue-200 shadow-sm">
+              🗺️ Search in this Area
+            </button>
+          </div>
+        )}
           <input
             type="text"
             placeholder="치과명으로 검색 (선택)"
