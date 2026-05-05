@@ -18,7 +18,7 @@ function ClinicsPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const [tab, setTab] = useState<Tab>(() => (searchParams.get("tab") as Tab) || "region");
+  const [tab, setTab] = useState<Tab>(() => (searchParams.get("tab") as Tab) || "nearby");
   const [userPos, setUserPos] = useState<{ lat: number; lng: number } | null>(null);
   const [geoError, setGeoError] = useState<string | null>(null);
   const [geoLoading, setGeoLoading] = useState(false);
@@ -45,7 +45,7 @@ function ClinicsPageContent() {
     const q = searchParams.get("q") || "";
     const cityParam = searchParams.get("city") || "전국";
     const districtParam = searchParams.get("district") || "";
-    const tabParam = (searchParams.get("tab") as Tab) || "region";
+    const tabParam = (searchParams.get("tab") as Tab) || "nearby";
 
     if (q !== search) setSearch(q);
     if (q !== inputValue) setInputValue(q);
