@@ -92,7 +92,7 @@ export default function NearbyMap({ userPos, clinics, selectedId, onSelect }: Pr
         if (destroyed || !mapRef.current) return;
         const userLat = userPosRef.current.lat;
         const userLng = userPosRef.current.lng;
-        const delta = 5 / 111; // ~0.045 degrees = 5km radius
+        const delta = 1 / 111; // ~0.009 degrees = 1km radius
         const map = new window.kakao.maps.Map(mapRef.current, {
           center: new window.kakao.maps.LatLng(userLat, userLng)
         });

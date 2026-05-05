@@ -42,7 +42,7 @@ export function useClinics({ tab, userPos, city, district, search, page, priceRe
     if (tab === "nearby" && !userPos) return;
     setLoading(true);
 
-    const NEARBY_KM = 5;
+    const NEARBY_KM = 1;
     const delta = NEARBY_KM / 111;
 
     const withDistances = (items: Clinic[]): Clinic[] =>
