@@ -149,7 +149,7 @@ export default function NearbyMap({ userPos, clinics, selectedId, onSelect }: Pr
     <div
       ref={mapRef}
       className="w-full rounded-xl overflow-hidden"
-      style={{ height: "250px" }}
+      style={{ height: "200px" }}
     />
   );
 }
