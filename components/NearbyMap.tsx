@@ -87,27 +87,29 @@ export default function NearbyMap({ userPos, clinics, selectedId, onSelect }: Pr
           "animation:pulse 2s ease-in-out infinite",
         ].join(";");
 
-        // Name label
-        const label = document.createElement("div");
-        label.style.cssText = [
-          "margin-top:4px",
-          "padding:3px 8px",
-          "background:white",
-          "border-radius:4px",
-          "font-size:11px",
-          "color:#1f2937",
-          "font-weight:500",
-          "box-shadow:0 1px 3px rgba(0,0,0,0.2)",
-          "white-space:nowrap",
-          "max-width:140px",
-          "overflow:hidden",
-          "text-overflow:ellipsis",
-          "text-align:center",
-        ].join(";");
-        label.textContent = c.name;
-
         container.appendChild(marker);
-        container.appendChild(label);
+
+        // Name label - only show when selected
+        if (isSelected) {
+          const label = document.createElement("div");
+          label.style.cssText = [
+            "margin-top:4px",
+            "padding:3px 8px",
+            "background:white",
+            "border-radius:4px",
+            "font-size:11px",
+            "color:#1f2937",
+            "font-weight:500",
+            "box-shadow:0 1px 3px rgba(0,0,0,0.2)",
+            "white-space:nowrap",
+            "max-width:140px",
+            "overflow:hidden",
+            "text-overflow:ellipsis",
+            "text-align:center",
+          ].join(";");
+          label.textContent = c.name;
+          container.appendChild(label);
+        }
 
         container.addEventListener("click", () => onSelectRef.current(c.clinic_id));
 
@@ -204,15 +206,8 @@ export default function NearbyMap({ userPos, clinics, selectedId, onSelect }: Pr
   useEffect(() => {
     if (kakaoMapRef.current && clinics.length > 0) {
       placeMarkers();
-      fitBounds();
     }
-  }, [clinics]);
-
-  useEffect(() => {
-    if (kakaoMapRef.current) {
-      placeMarkers();
-    }
-  }, [selectedId]);
+  }, [clinics, selectedId]);
 
   return (
     <div
