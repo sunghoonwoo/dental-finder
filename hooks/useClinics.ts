@@ -131,7 +131,7 @@ export function useClinics({ tab, userPos, city, district, search, page, priceRe
     };
 
     loadClinics();
-  }, [tab, userPos, city, district, search, page, priceReportOnly]);
+  }, [tab, userPos, city, district, search, page, priceReportOnly, bounds]);
 
   const pagedClinics = tab === "nearby" && !priceReportOnly
     ? clinics.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)

@@ -167,7 +167,8 @@ export default function NearbyMap({ userPos, clinics, selectedId, onSelect, onDo
   }
 
   useEffect(() => {
-    mapReadyRef.current = false;
+    if (mapReadyRef.current) return; // Only initialize once
+    mapReadyRef.current = true;
     let destroyed = false;
 
     function createMap() {
