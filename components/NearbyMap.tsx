@@ -47,13 +47,19 @@ export default function NearbyMap({ userPos, clinics, selectedId, onSelect }: Pr
       .filter((c) => c.lat && c.lng)
       .forEach((c) => {
         const isSelected = c.clinic_id === selectedIdRef.current;
-        const size = isSelected ? 32 : 28;
-        const fontSize = isSelected ? 18 : 16;
-        const el = document.createElement("div");
-        el.style.cssText = [
+        const size = isSelected ? 36 : 32;
+        const fontSize = isSelected ? 20 : 18;
+
+        // Create container for marker + label
+        const container = document.createElement("div");
+        container.style.cssText = "display:flex; flex-direction:column; align-items:center; cursor:pointer;";
+
+        // Marker circle - red
+        const marker = document.createElement("div");
+        marker.style.cssText = [
           `width:${size}px`,
           `height:${size}px`,
-          `background:${c.color}`,
+          "background:#ef4444",
           "border-radius:50%",
           `border:${isSelected ? "3px" : "2px"} solid white`,
           "box-shadow:0 2px 6px rgba(0,0,0,0.3)",
@@ -65,13 +71,36 @@ export default function NearbyMap({ userPos, clinics, selectedId, onSelect }: Pr
           "font-weight:bold",
           "line-height:1",
         ].join(";");
-        el.innerHTML = "＋";
-        el.addEventListener("click", () => onSelectRef.current(c.clinic_id));
+        marker.innerHTML = "＋";
+
+        // Name label
+        const label = document.createElement("div");
+        label.style.cssText = [
+          "margin-top:4px",
+          "padding:3px 8px",
+          "background:white",
+          "border-radius:4px",
+          "font-size:11px",
+          "color:#1f2937",
+          "font-weight:500",
+          "box-shadow:0 1px 3px rgba(0,0,0,0.2)",
+          "white-space:nowrap",
+          "max-width:140px",
+          "overflow:hidden",
+          "text-overflow:ellipsis",
+          "text-align:center",
+        ].join(";");
+        label.textContent = c.name;
+
+        container.appendChild(marker);
+        container.appendChild(label);
+
+        container.addEventListener("click", () => onSelectRef.current(c.clinic_id));
 
         const overlay = new window.kakao.maps.CustomOverlay({
           position: new window.kakao.maps.LatLng(c.lat, c.lng),
-          content: el,
-          yAnchor: 0.5,
+          content: container,
+          yAnchor: isSelected ? 0.8 : 0.7,
           xAnchor: 0.5,
           zIndex: isSelected ? 10 : 1,
         });
