@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
 import "./globals.css";
 
@@ -7,6 +7,13 @@ const geist = Geist({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "우리동네 양심치과",
   description: "과잉진료 없는 양심치과를 찾아드립니다",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
