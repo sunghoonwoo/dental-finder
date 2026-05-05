@@ -110,7 +110,7 @@ export default function NearbyMap({ userPos, clinics, selectedId, onSelect }: Pr
           "width:14px;height:14px;background:#3b82f6;border-radius:50%;" +
           "border:3px solid white;box-shadow:0 0 0 4px rgba(59,130,246,0.22);";
         new window.kakao.maps.CustomOverlay({
-          position: center,
+          position: new window.kakao.maps.LatLng(userLat, userLng),
           content: el,
           yAnchor: 0.5,
           xAnchor: 0.5,
