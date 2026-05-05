@@ -19,13 +19,15 @@ type Props = {
   clinics: MapClinic[];
   selectedId: string | null;
   onSelect: (id: string) => void;
+  onBoundsChanged?: (bounds: { sw: { lat: number; lng: number }; ne: { lat: number; lng: number } }) => void;
 };
 
-export default function NearbyMap({ userPos, clinics, selectedId, onSelect }: Props) {
+export default function NearbyMap({ userPos, clinics, selectedId, onSelect, onBoundsChanged }: Props) {
   const mapRef = useRef<HTMLDivElement>(null);
   const kakaoMapRef = useRef<any>(null);
   const overlaysRef = useRef<any[]>([]);
   const mapReadyRef = useRef(false);
+  const onBoundsChangedRef = useRef(onBoundsChanged);
 
   // Inject pulse animation styles
   useEffect(() => {
@@ -157,6 +159,23 @@ export default function NearbyMap({ userPos, clinics, selectedId, onSelect }: Pr
         );
         map.setBounds(initBounds, 0);
         kakaoMapRef.current = map;
+
+        // Notify parent of bounds changes
+        if (onBoundsChangedRef.current) {
+          const notifyBounds = () => {
+            const bounds = map.getBounds();
+            if (bounds) {
+              const sw = bounds.getSouthWest();
+              const ne = bounds.getNorthEast();
+              onBoundsChangedRef.current?.({
+                sw: { lat: sw.getLat(), lng: sw.getLng() },
+                ne: { lat: ne.getLat(), lng: ne.getLng() },
+              });
+            }
+          };
+          window.kakao.maps.event.addListener(map, "idle", notifyBounds);
+          notifyBounds(); // Initial bounds
+        }
 
         // 내 위치 파란 원
         const el = document.createElement("div");

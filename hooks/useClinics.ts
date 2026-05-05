@@ -27,9 +27,10 @@ type Params = {
   search: string;
   page: number;
   priceReportOnly: boolean;
+  bounds?: { sw: { lat: number; lng: number }; ne: { lat: number; lng: number } } | null;
 };
 
-export function useClinics({ tab, userPos, city, district, search, page, priceReportOnly }: Params) {
+export function useClinics({ tab, userPos, city, district, search, page, priceReportOnly, bounds }: Params) {
   const [clinics, setClinics] = useState<Clinic[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -39,16 +40,13 @@ export function useClinics({ tab, userPos, city, district, search, page, priceRe
   }, [tab, city, district, userPos, priceReportOnly]);
 
   useEffect(() => {
-    if (tab === "nearby" && !userPos) return;
+    if (tab === "nearby" && !userPos && !bounds) return;
     setLoading(true);
-
-    const NEARBY_KM = 1;
-    const delta = NEARBY_KM / 111;
 
     const withDistances = (items: Clinic[]): Clinic[] =>
       items
         .map((c) => ({ ...c, distance: c.lat && c.lng && userPos ? calcDistance(userPos.lat, userPos.lng, c.lat, c.lng) : 999 }))
-        .filter((c) => (c.distance ?? 999) <= NEARBY_KM)
+        .filter((c) => (c.distance ?? 999) <= 5)
         .sort((a, b) => (a.distance ?? 999) - (b.distance ?? 999));
 
     const loadClinics = async () => {
@@ -82,13 +80,23 @@ export function useClinics({ tab, userPos, city, district, search, page, priceRe
         return;
       }
 
-      if (tab === "nearby" && userPos) {
+      if (tab === "nearby" && (userPos || bounds)) {
         let query = supabase
           .from("clinics")
           .select("clinic_id, name, address, city, district, phone, lat, lng")
-          .eq("is_active", true)
-          .gte("lat", userPos.lat - delta).lte("lat", userPos.lat + delta)
-          .gte("lng", userPos.lng - delta).lte("lng", userPos.lng + delta);
+          .eq("is_active", true);
+
+        // Use bounds if available, otherwise fall back to userPos + delta
+        if (bounds) {
+          query = query
+            .gte("lat", bounds.sw.lat).lte("lat", bounds.ne.lat)
+            .gte("lng", bounds.sw.lng).lte("lng", bounds.ne.lng);
+        } else if (userPos) {
+          const delta = 5 / 111;
+          query = query
+            .gte("lat", userPos.lat - delta).lte("lat", userPos.lat + delta)
+            .gte("lng", userPos.lng - delta).lte("lng", userPos.lng + delta);
+        }
         if (search && search.trim()) query = query.ilike("name", `%${search.trim()}%`);
 
         const { data } = await query;

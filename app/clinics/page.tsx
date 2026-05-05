@@ -32,12 +32,17 @@ function ClinicsPageContent() {
 
   const [priceReportOnly, setPriceReportOnly] = useState(false);
   const [page, setPage] = useState(0);
+  const [mapBounds, setMapBounds] = useState<{ sw: { lat: number; lng: number }; ne: { lat: number; lng: number } } | null>(null);
+
+  const handleBoundsChanged = useCallback((bounds: { sw: { lat: number; lng: number }; ne: { lat: number; lng: number } }) => {
+    setMapBounds(bounds);
+  }, []);
 
   // "전국" 선택 시 city 값을 빈 문자열로 처리
   const effectiveCity = city === "전국" ? "" : city;
 
   const { clinics, loading, pagedClinics } = useClinics({
-    tab, userPos, city: effectiveCity, district, search, page, priceReportOnly
+    tab, userPos, city: effectiveCity, district, search, page, priceReportOnly, bounds: tab === "nearby" ? mapBounds : null
   });
 
   // URL 쿼리 동기화 (뒤로가기/앞으로가기 지원)
