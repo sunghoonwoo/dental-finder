@@ -25,7 +25,7 @@ export default function NearbyMap({ userPos, clinics, selectedId, onSelect }: Pr
   const mapRef = useRef<HTMLDivElement>(null);
   const kakaoMapRef = useRef<any>(null);
   const overlaysRef = useRef<any[]>([]);
-  const boundsFittedRef = useRef(false);
+  const mapReadyRef = useRef(false);
 
   const clinicsRef = useRef(clinics);
   const selectedIdRef = useRef(selectedId);
@@ -83,7 +83,7 @@ export default function NearbyMap({ userPos, clinics, selectedId, onSelect }: Pr
   }
 
   useEffect(() => {
-    boundsFittedRef.current = false;
+    mapReadyRef.current = false;
     let destroyed = false;
 
     function createMap() {
@@ -144,15 +144,16 @@ export default function NearbyMap({ userPos, clinics, selectedId, onSelect }: Pr
   }, [userPos.lat, userPos.lng]);
 
   useEffect(() => {
-    if (!boundsFittedRef.current && clinics.length > 0) {
+    if (kakaoMapRef.current && clinics.length > 0) {
+      placeMarkers();
       fitBounds();
-      boundsFittedRef.current = true;
     }
-    placeMarkers();
   }, [clinics]);
 
   useEffect(() => {
-    placeMarkers();
+    if (kakaoMapRef.current) {
+      placeMarkers();
+    }
   }, [selectedId]);
 
   return (
