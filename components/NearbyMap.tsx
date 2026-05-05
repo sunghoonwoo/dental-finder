@@ -47,16 +47,25 @@ export default function NearbyMap({ userPos, clinics, selectedId, onSelect }: Pr
       .filter((c) => c.lat && c.lng)
       .forEach((c) => {
         const isSelected = c.clinic_id === selectedIdRef.current;
+        const size = isSelected ? 32 : 28;
+        const fontSize = isSelected ? 18 : 16;
         const el = document.createElement("div");
         el.style.cssText = [
-          `width:${isSelected ? 18 : 12}px`,
-          `height:${isSelected ? 18 : 12}px`,
+          `width:${size}px`,
+          `height:${size}px`,
           `background:${c.color}`,
           "border-radius:50%",
           `border:${isSelected ? "3px" : "2px"} solid white`,
-          "box-shadow:0 1px 4px rgba(0,0,0,0.4)",
-          "cursor:pointer",
+          "box-shadow:0 2px 6px rgba(0,0,0,0.3)",
+          "display:flex",
+          "align-items:center",
+          "justify-content:center",
+          `font-size:${fontSize}px`,
+          "color:white",
+          "font-weight:bold",
+          "line-height:1",
         ].join(";");
+        el.innerHTML = "＋";
         el.addEventListener("click", () => onSelectRef.current(c.clinic_id));
 
         const overlay = new window.kakao.maps.CustomOverlay({
@@ -106,9 +115,15 @@ export default function NearbyMap({ userPos, clinics, selectedId, onSelect }: Pr
 
         // 내 위치 파란 원
         const el = document.createElement("div");
-        el.style.cssText =
-          "width:14px;height:14px;background:#3b82f6;border-radius:50%;" +
-          "border:3px solid white;box-shadow:0 0 0 4px rgba(59,130,246,0.22);";
+        el.style.cssText = [
+          "width:20px",
+          "height:20px",
+          "background:#3b82f6",
+          "border-radius:50%",
+          "border:3px solid white",
+          "box-shadow:0 0 0 4px rgba(59,130,246,0.22)",
+          "box-shadow:0 2px 8px rgba(0,0,0,0.3)",
+        ].join(";");
         new window.kakao.maps.CustomOverlay({
           position: new window.kakao.maps.LatLng(userLat, userLng),
           content: el,
