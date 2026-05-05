@@ -27,6 +27,28 @@ export default function NearbyMap({ userPos, clinics, selectedId, onSelect }: Pr
   const overlaysRef = useRef<any[]>([]);
   const mapReadyRef = useRef(false);
 
+  // Inject pulse animation styles
+  useEffect(() => {
+    const styleId = 'pulse-animation-style';
+    if (document.getElementById(styleId)) return;
+    
+    const style = document.createElement('style');
+    style.id = styleId;
+    style.textContent = `
+      @keyframes pulse {
+        0% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.4); opacity: 0.6; }
+        100% { transform: scale(1); opacity: 1; }
+      }
+    `;
+    document.head.appendChild(style);
+    
+    return () => {
+      const el = document.getElementById(styleId);
+      if (el) el.remove();
+    };
+  }, []);
+
   const clinicsRef = useRef(clinics);
   const selectedIdRef = useRef(selectedId);
   const onSelectRef = useRef(onSelect);
@@ -53,7 +75,7 @@ export default function NearbyMap({ userPos, clinics, selectedId, onSelect }: Pr
         const container = document.createElement("div");
         container.style.cssText = "display:flex; flex-direction:column; align-items:center; cursor:pointer;";
 
-        // Marker circle - red
+        // Marker circle - red with pulse animation
         const marker = document.createElement("div");
         marker.style.cssText = [
           `width:${size}px`,
@@ -62,6 +84,7 @@ export default function NearbyMap({ userPos, clinics, selectedId, onSelect }: Pr
           "border-radius:50%",
           `border:${isSelected ? "3px" : "2px"} solid white`,
           "box-shadow:0 2px 6px rgba(0,0,0,0.3)",
+          "animation:pulse 2s ease-in-out infinite",
         ].join(";");
 
         // Name label
