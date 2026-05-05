@@ -79,7 +79,7 @@ export default function NearbyMap({ userPos, clinics, selectedId, onSelect }: Pr
     const bounds = new window.kakao.maps.LatLngBounds();
     bounds.extend(new window.kakao.maps.LatLng(userPosRef.current.lat, userPosRef.current.lng));
     valid.forEach((c) => bounds.extend(new window.kakao.maps.LatLng(c.lat, c.lng)));
-    map.setBounds(bounds, 60);
+    map.setBounds(bounds, 20);
   }
 
   useEffect(() => {
@@ -90,8 +90,18 @@ export default function NearbyMap({ userPos, clinics, selectedId, onSelect }: Pr
       if (destroyed || !mapRef.current) return;
       window.kakao.maps.load(() => {
         if (destroyed || !mapRef.current) return;
-        const center = new window.kakao.maps.LatLng(userPosRef.current.lat, userPosRef.current.lng);
-        const map = new window.kakao.maps.Map(mapRef.current, { center, level: 6 });
+        const userLat = userPosRef.current.lat;
+        const userLng = userPosRef.current.lng;
+        const delta = 5 / 111; // ~0.045 degrees = 5km radius
+        const map = new window.kakao.maps.Map(mapRef.current, {
+          center: new window.kakao.maps.LatLng(userLat, userLng)
+        });
+        // Set initial bounds to 5km radius
+        const initBounds = new window.kakao.maps.LatLngBounds(
+          new window.kakao.maps.LatLng(userLat - delta, userLng - delta),
+          new window.kakao.maps.LatLng(userLat + delta, userLng + delta)
+        );
+        map.setBounds(initBounds, 0);
         kakaoMapRef.current = map;
 
         // 내 위치 파란 원
