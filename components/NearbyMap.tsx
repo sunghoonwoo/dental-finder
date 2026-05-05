@@ -47,8 +47,7 @@ export default function NearbyMap({ userPos, clinics, selectedId, onSelect }: Pr
       .filter((c) => c.lat && c.lng)
       .forEach((c) => {
         const isSelected = c.clinic_id === selectedIdRef.current;
-        const size = isSelected ? 36 : 32;
-        const fontSize = isSelected ? 20 : 18;
+        const size = isSelected ? 22 : 20;
 
         // Create container for marker + label
         const container = document.createElement("div");
@@ -63,15 +62,7 @@ export default function NearbyMap({ userPos, clinics, selectedId, onSelect }: Pr
           "border-radius:50%",
           `border:${isSelected ? "3px" : "2px"} solid white`,
           "box-shadow:0 2px 6px rgba(0,0,0,0.3)",
-          "display:flex",
-          "align-items:center",
-          "justify-content:center",
-          `font-size:${fontSize}px`,
-          "color:white",
-          "font-weight:bold",
-          "line-height:1",
         ].join(";");
-        marker.innerHTML = "＋";
 
         // Name label
         const label = document.createElement("div");
