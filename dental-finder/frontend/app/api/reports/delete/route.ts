@@ -9,29 +9,29 @@ const supabase = createClient(
 export async function POST(req: NextRequest) {
   try {
     const { reportId, pin } = await req.json();
-    const { data: deleted, error } = await supabase.rpc("delete_report_with_pin", {
+    console.log("[delete] reportId:", reportId, "pin:", pin);
+
+    const { data, error } = await supabase.rpc("delete_report_with_pin", {
       p_report_id: reportId,
       p_pin: pin,
     });
 
     if (error) {
+      console.error("[delete] RPC error:", error.message);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    let visitId: string | undefined;
-    if (deleted) {
-      const { data: sibling } = await supabase
-        .from("user_price_reports")
-        .select("visit_id")
-        .eq("report_id", reportId)
-        .maybeSingle();
-      if (sibling?.visit_id) {
-        visitId = sibling.visit_id;
-        await supabase.from("user_price_reports").delete().eq("visit_id", visitId);
-      }
+    console.log("[delete] RPC result:", JSON.stringify(data));
+
+    const ok = data?.[0]?.ok ?? false;
+    const visitId: string | undefined = data?.[0]?.visit_id ?? undefined;
+
+    if (!ok) {
+      console.warn("[delete] RPC returned ok=false — wrong pin or not found");
+      return NextResponse.json({ ok: false, visitId: undefined }, { status: 400 });
     }
 
-    return NextResponse.json({ ok: !!deleted, visitId });
+    return NextResponse.json({ ok: true, visitId });
   } catch (e) {
     console.error("[API POST /reports/delete]", e);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

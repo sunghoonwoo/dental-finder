@@ -45,10 +45,15 @@ export default function ClinicDetailPage() {
 
   async function openPinPrompt(reportId: string, action: "edit" | "delete") {
     if (action === "delete") {
-      const { requiresPin } = await api.reportRequiresPin(reportId);
-      if (!requiresPin) {
-        await api.deleteReport(reportId, "");
-        loadData();
+      try {
+        const { requiresPin } = await api.reportRequiresPin(reportId);
+        if (!requiresPin) {
+          await api.deleteReport(reportId, "");
+          loadData();
+          return;
+        }
+      } catch (e) {
+        console.error("[openPinPrompt] delete failed:", e);
         return;
       }
     }
@@ -63,8 +68,15 @@ export default function ClinicDetailPage() {
     setPinError(false);
 
     if (pinState.action === "delete") {
-      const { ok } = await api.deleteReport(pinState.reportId, pinInput);
-      if (!ok) { setPinError(true); setPinVerifying(false); return; }
+      try {
+        const { ok } = await api.deleteReport(pinState.reportId, pinInput);
+        if (!ok) { setPinError(true); setPinVerifying(false); return; }
+      } catch (e) {
+        console.error("[handlePinSubmit] delete failed:", e);
+        setPinError(true);
+        setPinVerifying(false);
+        return;
+      }
       setPinState(null);
       setPinVerifying(false);
       loadData();
