@@ -179,7 +179,7 @@ function ClinicsPageContent() {
   }, [searchParams, router]);
 
   return (
-    <div className="mx-auto w-full max-w-[640px] px-4">
+    <div className="mx-auto w-full max-w-[640px] px-2">
       {/* 탭 */}
       <div className="flex rounded-[40px] bg-white p-0.5 mb-3" style={{boxShadow: '0 4px 20px rgba(99,102,241,0.08)'}}>
         {(["nearby", "region"] as Tab[]).map((t) => (
