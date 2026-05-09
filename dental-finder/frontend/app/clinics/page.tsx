@@ -255,9 +255,15 @@ function ClinicsPageContent() {
         </div>
       )}
 
-      {/* 지도 + 통합 검색 버튼 (nearby탭, 위치 있음) */}
+      {/* 지도 + 로딩바 + 통합 검색 버튼 (nearby탭, 위치 있음) */}
       {tab === "nearby" && userPos && (
-        <div className="mb-3 relative" style={{ height: '35vh' }}>
+        <div className="mb-3 relative overflow-hidden" style={{ height: '35vh', minHeight: '280px' }}>
+          {/* Loading progress bar */}
+          {(geoLoading || loading) && (
+            <div className="absolute top-0 left-0 right-0 z-50 h-0.5 bg-indigo-100/50">
+              <div className="h-full w-full bg-gradient-to-r from-[#818CF8] to-[#6366F1] animate-loading-bar" />
+            </div>
+          )}
           <div className="rounded-[32px] overflow-hidden h-full" style={{boxShadow: '0 8px 30px rgba(0,0,0,0.04)'}}>
             <NearbyMap
               ref={mapRef}

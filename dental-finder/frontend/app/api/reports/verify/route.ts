@@ -9,15 +9,17 @@ const supabase = createClient(
 export async function POST(req: NextRequest) {
   try {
     const { reportId, pin } = await req.json();
-    const { data: ok, error } = await supabase.rpc("verify_report_pin", {
-      p_report_id: reportId,
-      p_pin: pin,
-    });
+    const { data, error } = await supabase
+      .from("user_price_reports")
+      .select("pin")
+      .eq("report_id", reportId)
+      .maybeSingle();
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
-    return NextResponse.json({ ok: !!ok });
+
+    return NextResponse.json({ ok: data?.pin === pin });
   } catch (e) {
     console.error("[API POST /reports/verify]", e);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

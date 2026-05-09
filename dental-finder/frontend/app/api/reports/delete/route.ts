@@ -9,29 +9,50 @@ const supabase = createClient(
 export async function POST(req: NextRequest) {
   try {
     const { reportId, pin } = await req.json();
-    const { data: deleted, error } = await supabase.rpc("delete_report_with_pin", {
-      p_report_id: reportId,
-      p_pin: pin,
-    });
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+    const { data: report, error: fetchError } = await supabase
+      .from("user_price_reports")
+      .select("pin, visit_id, clinic_id")
+      .eq("report_id", reportId)
+      .maybeSingle();
+
+    if (fetchError) {
+      return NextResponse.json({ error: fetchError.message }, { status: 500 });
     }
 
-    let visitId: string | undefined;
-    if (deleted) {
-      const { data: sibling } = await supabase
+    if (!report) {
+      return NextResponse.json({ error: "Report not found" }, { status: 404 });
+    }
+
+    if (report.pin && report.pin !== pin) {
+      return NextResponse.json({ ok: false });
+    }
+
+    const targetVisitId = report.visit_id;
+    const targetClinicId = report.clinic_id;
+
+    if (targetVisitId) {
+      const { error: deleteError } = await supabase
         .from("user_price_reports")
-        .select("visit_id")
-        .eq("report_id", reportId)
-        .maybeSingle();
-      if (sibling?.visit_id) {
-        visitId = sibling.visit_id;
-        await supabase.from("user_price_reports").delete().eq("visit_id", visitId);
+        .delete()
+        .eq("visit_id", targetVisitId)
+        .eq("clinic_id", targetClinicId);
+
+      if (deleteError) {
+        return NextResponse.json({ error: deleteError.message }, { status: 500 });
+      }
+    } else {
+      const { error: deleteError } = await supabase
+        .from("user_price_reports")
+        .delete()
+        .eq("report_id", reportId);
+
+      if (deleteError) {
+        return NextResponse.json({ error: deleteError.message }, { status: 500 });
       }
     }
 
-    return NextResponse.json({ ok: !!deleted, visitId });
+    return NextResponse.json({ ok: true, visitId: targetVisitId });
   } catch (e) {
     console.error("[API POST /reports/delete]", e);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
