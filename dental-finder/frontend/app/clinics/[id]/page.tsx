@@ -22,6 +22,7 @@ export default function ClinicDetailPage() {
   const [pinState, setPinState] = useState<PinState | null>(null);
   const [pinInput, setPinInput] = useState("");
   const [pinError, setPinError] = useState(false);
+  const [pinErrorMessage, setPinErrorMessage] = useState("");
   const [pinVerifying, setPinVerifying] = useState(false);
 
   async function loadData() {
@@ -53,13 +54,15 @@ export default function ClinicDetailPage() {
           return;
         }
       } catch (e) {
-        console.error("[openPinPrompt] delete failed:", e);
+        const msg = e instanceof Error ? e.message : "알 수 없는 오류";
+        console.error("[openPinPrompt] delete failed:", msg);
         return;
       }
     }
     setPinState({ reportId, action });
     setPinInput("");
     setPinError(false);
+    setPinErrorMessage("");
   }
 
   async function handlePinSubmit() {
@@ -70,10 +73,12 @@ export default function ClinicDetailPage() {
     if (pinState.action === "delete") {
       try {
         const { ok } = await api.deleteReport(pinState.reportId, pinInput);
-        if (!ok) { setPinError(true); setPinVerifying(false); return; }
+        if (!ok) { setPinError(true); setPinErrorMessage("비번이 틀렸습니다"); setPinVerifying(false); return; }
       } catch (e) {
-        console.error("[handlePinSubmit] delete failed:", e);
+        const msg = e instanceof Error ? e.message : "알 수 없는 오류";
+        console.error("[handlePinSubmit] delete failed:", msg);
         setPinError(true);
+        setPinErrorMessage(msg);
         setPinVerifying(false);
         return;
       }
@@ -221,7 +226,7 @@ export default function ClinicDetailPage() {
                         autoFocus
                         className="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm text-gray-900 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
-                      {pinError && <p className="text-xs text-red-500">비번이 틀렸습니다</p>}
+                      {pinError && <p className="text-xs text-red-500">{pinErrorMessage || "비번이 틀렸습니다"}</p>}
                       <div className="flex gap-2">
                         <button onClick={() => setPinState(null)} className="flex-1 border border-gray-300 text-gray-600 text-sm font-medium py-2 rounded-xl hover:bg-gray-100 transition">취소</button>
                         <button

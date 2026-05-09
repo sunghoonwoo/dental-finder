@@ -28,10 +28,9 @@ export async function POST(req: NextRequest) {
 
     if (!ok) {
       console.warn("[delete] RPC returned ok=false — wrong pin or not found");
-      return NextResponse.json({ ok: false, visitId: undefined }, { status: 400 });
     }
 
-    return NextResponse.json({ ok: true, visitId });
+    return NextResponse.json({ ok, visitId: visitId ?? null });
   } catch (e) {
     console.error("[API POST /reports/delete]", e);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
