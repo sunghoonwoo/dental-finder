@@ -14,6 +14,12 @@ export type ReportFormValues = {
   reviewText: string;
   friendlinessScore: number | null;
   nickname: string;
+  consultationType: string;
+  overtreatmentOtherTeeth: boolean | null;
+  overtreatmentDiscountPressure: boolean | null;
+  consultationTime: string;
+  tags: string[];
+  receiptImageUrl: string;
 };
 
 type Props = {
@@ -29,6 +35,25 @@ const FRIENDLINESS_OPTIONS = [
   { score: 3, label: "보통",     emoji: "😐" },
   { score: 2, label: "불친절",   emoji: "😕" },
   { score: 1, label: "매우 불친절", emoji: "😠" },
+];
+
+const CONSULTATION_OPTIONS = [
+  { value: "doctor", label: "의사" },
+  { value: "coordinator", label: "코디네이터" },
+  { value: "both", label: "둘 다" },
+];
+
+const CONSULTATION_TIME_OPTIONS = [
+  { value: "under_5", label: "5분 미만" },
+  { value: "5_to_10", label: "5~10분" },
+  { value: "over_10", label: "10분 초과" },
+];
+
+const TAG_OPTIONS = [
+  { value: "HonestDiagnosis", label: "#정직한진단" },
+  { value: "NoPressure", label: "#압박없음" },
+  { value: "DetailedExplanation", label: "#상세설명" },
+  { value: "DoctorLed", label: "#의사직접" },
 ];
 
 const INPUT_CLS = "w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm text-gray-900 font-medium placeholder:text-gray-400 placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-blue-500";
@@ -47,6 +72,13 @@ export default function PriceReportForm({ clinicId, initialValues, onSuccess, on
   const [reviewText, setReviewText] = useState(initialValues?.reviewText ?? "");
   const [friendlinessScore, setFriendlinessScore] = useState<number | null>(initialValues?.friendlinessScore ?? null);
   const [nickname, setNickname] = useState(initialValues?.nickname ?? "");
+  const [consultationType, setConsultationType] = useState(initialValues?.consultationType ?? "");
+  const [overtreatmentOtherTeeth, setOvertreatmentOtherTeeth] = useState<boolean | null>(initialValues?.overtreatmentOtherTeeth ?? null);
+  const [overtreatmentDiscountPressure, setOvertreatmentDiscountPressure] = useState<boolean | null>(initialValues?.overtreatmentDiscountPressure ?? null);
+  const [consultationTime, setConsultationTime] = useState(initialValues?.consultationTime ?? "");
+  const [tags, setTags] = useState<string[]>(initialValues?.tags ?? []);
+  const [receiptImageUrl, setReceiptImageUrl] = useState(initialValues?.receiptImageUrl ?? "");
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [pin, setPin] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -62,6 +94,20 @@ export default function PriceReportForm({ clinicId, initialValues, onSuccess, on
 
   function handlePinChange(e: React.ChangeEvent<HTMLInputElement>) {
     setPin(e.target.value.replace(/[^0-9]/g, "").slice(0, 4));
+  }
+
+  function toggleTag(value: string) {
+    setTags((prev) =>
+      prev.includes(value) ? prev.filter((t) => t !== value) : [...prev, value]
+    );
+  }
+
+  async function handleReceiptUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setReceiptFile(file);
+    // Preview immediately
+    setReceiptImageUrl(URL.createObjectURL(file));
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -107,6 +153,12 @@ export default function PriceReportForm({ clinicId, initialValues, onSuccess, on
           friendlinessScore: friendlinessScore,
           nickname: nickname.trim() || null,
           pin,
+          consultationType: consultationType || undefined,
+          overtreatmentOtherTeeth: overtreatmentOtherTeeth ?? undefined,
+          overtreatmentDiscountPressure: overtreatmentDiscountPressure ?? undefined,
+          consultationTime: consultationTime || undefined,
+          tags: tags.length > 0 ? tags : undefined,
+          receiptImageUrl: receiptImageUrl || undefined,
         });
         setSubmitting(false);
         onSuccess(reportIds);
@@ -254,6 +306,153 @@ export default function PriceReportForm({ clinicId, initialValues, onSuccess, on
             </button>
           ))}
         </div>
+      </div>
+
+      <div>
+        <p className="text-sm font-medium text-gray-700 mb-2">치료 계획은 누가 설명했나요?</p>
+        <div className="flex gap-3">
+          {CONSULTATION_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => setConsultationType(consultationType === opt.value ? "" : opt.value)}
+              className={`flex-1 py-3 rounded-xl text-sm font-medium border-2 transition ${
+                consultationType === opt.value
+                  ? "border-blue-500 bg-blue-50 text-blue-700"
+                  : "border-gray-200 bg-white text-gray-500 hover:border-blue-300"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <p className="text-sm font-medium text-gray-700 mb-2">
+          통증 없는 다른 치아도 치료를 권유했나요?
+        </p>
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={() => setOvertreatmentOtherTeeth(overtreatmentOtherTeeth === false ? null : false)}
+            className={`flex-1 py-3 rounded-xl text-sm font-medium border-2 transition ${
+              overtreatmentOtherTeeth === false
+                ? "border-green-500 bg-green-50 text-green-700"
+                : "border-gray-200 bg-white text-gray-500 hover:border-green-300"
+            }`}
+          >
+            ✅ 아니요
+          </button>
+          <button
+            type="button"
+            onClick={() => setOvertreatmentOtherTeeth(overtreatmentOtherTeeth === true ? null : true)}
+            className={`flex-1 py-3 rounded-xl text-sm font-medium border-2 transition ${
+              overtreatmentOtherTeeth === true
+                ? "border-orange-500 bg-orange-50 text-orange-700"
+                : "border-gray-200 bg-white text-gray-500 hover:border-orange-300"
+            }`}
+          >
+            ⚠️ 네
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <p className="text-sm font-medium text-gray-700 mb-2">
+          여러 치료를 동시에 하면 할인을 제안했나요?
+        </p>
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={() => setOvertreatmentDiscountPressure(overtreatmentDiscountPressure === false ? null : false)}
+            className={`flex-1 py-3 rounded-xl text-sm font-medium border-2 transition ${
+              overtreatmentDiscountPressure === false
+                ? "border-green-500 bg-green-50 text-green-700"
+                : "border-gray-200 bg-white text-gray-500 hover:border-green-300"
+            }`}
+          >
+            ✅ 아니요
+          </button>
+          <button
+            type="button"
+            onClick={() => setOvertreatmentDiscountPressure(overtreatmentDiscountPressure === true ? null : true)}
+            className={`flex-1 py-3 rounded-xl text-sm font-medium border-2 transition ${
+              overtreatmentDiscountPressure === true
+                ? "border-orange-500 bg-orange-50 text-orange-700"
+                : "border-gray-200 bg-white text-gray-500 hover:border-orange-300"
+            }`}
+          >
+            ⚠️ 네
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <p className="text-sm font-medium text-gray-700 mb-2">의사와의 상담 시간</p>
+        <select
+          value={consultationTime}
+          onChange={(e) => setConsultationTime(e.target.value)}
+          className={INPUT_CLS}
+        >
+          <option value="">선택해주세요</option>
+          {CONSULTATION_TIME_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <p className="text-sm font-medium text-gray-700 mb-2">태그 (복수 선택)</p>
+        <div className="flex flex-wrap gap-2">
+          {TAG_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => toggleTag(opt.value)}
+              className={`px-3 py-1.5 rounded-full text-sm border transition ${
+                tags.includes(opt.value)
+                  ? "bg-indigo-600 text-white border-indigo-600"
+                  : "bg-white text-gray-600 border-gray-300 hover:border-indigo-400"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <p className="text-sm font-medium text-gray-700 mb-2">영수증 사진 (선택)</p>
+        <div className="flex items-center gap-3">
+          <label className="flex-1 cursor-pointer">
+            <div className="border-2 border-dashed border-gray-300 rounded-xl px-4 py-3 text-center text-sm text-gray-400 hover:border-blue-400 hover:text-blue-500 transition">
+              {receiptFile ? receiptFile.name : "사진 선택"}
+            </div>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleReceiptUpload}
+              className="hidden"
+            />
+          </label>
+          {receiptImageUrl && (
+            <button
+              type="button"
+              onClick={() => { setReceiptFile(null); setReceiptImageUrl(""); }}
+              className="text-sm text-red-500 hover:underline shrink-0"
+            >
+              삭제
+            </button>
+          )}
+        </div>
+        {receiptImageUrl && (
+          <img
+            src={receiptImageUrl}
+            alt="영수증"
+            className="mt-2 max-h-40 rounded-xl object-cover border"
+          />
+        )}
       </div>
 
       <div>

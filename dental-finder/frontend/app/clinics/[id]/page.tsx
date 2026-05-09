@@ -84,6 +84,12 @@ export default function ClinicDetailPage() {
           reviewText: report.review_text ?? "",
           friendlinessScore: report.friendliness_score,
           nickname: report.nickname ?? "",
+          consultationType: report.consultation_type ?? "",
+          overtreatmentOtherTeeth: report.overtreatment_other_teeth ?? null,
+          overtreatmentDiscountPressure: report.overtreatment_discount_pressure ?? null,
+          consultationTime: report.consultation_time ?? "",
+          tags: report.tags ?? [],
+          receiptImageUrl: report.receipt_image_url ?? "",
         });
       }
       setPinState(null);
@@ -235,6 +241,42 @@ export default function ClinicDetailPage() {
                             <span className="text-xs text-gray-500">{FRIENDLINESS_EMOJI[first.friendliness_score]} {first.friendliness_score}점</span>
                           )}
                         </div>
+                        {first.consultation_type && (
+                          <div className="text-xs text-gray-500">
+                            진료 설명: {first.consultation_type === "doctor" ? "의사" : first.consultation_type === "coordinator" ? "코디네이터" : "둘 다"}
+                          </div>
+                        )}
+                        {first.consultation_time && (
+                          <div className="text-xs text-gray-500">
+                            상담 시간: {first.consultation_time === "under_5" ? "5분 미만" : first.consultation_time === "5_to_10" ? "5~10분" : "10분 초과"}
+                          </div>
+                        )}
+                        {first.overtreatment_other_teeth != null && (
+                          <div className="text-xs text-gray-500">
+                            다른 치아 권유: {first.overtreatment_other_teeth ? "⚠️ 네" : "✅ 아니요"}
+                          </div>
+                        )}
+                        {first.overtreatment_discount_pressure != null && (
+                          <div className="text-xs text-gray-500">
+                            할인 압박: {first.overtreatment_discount_pressure ? "⚠️ 네" : "✅ 아니요"}
+                          </div>
+                        )}
+                        {first.tags && first.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {first.tags.map((t: string) => (
+                              <span key={t} className="text-xs bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded-full">
+                                #{t === "HonestDiagnosis" ? "정직한진단" : t === "NoPressure" ? "압박없음" : t === "DetailedExplanation" ? "상세설명" : t === "DoctorLed" ? "의사직접" : t}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        {first.receipt_image_url && (
+                          <img
+                            src={first.receipt_image_url}
+                            alt="영수증"
+                            className="mt-1 max-h-24 rounded-lg border object-cover"
+                          />
+                        )}
                         {first.extra_note && <div className="text-xs text-gray-500">💬 권유내용: {first.extra_note}</div>}
                         {first.review_text && <div className="text-xs text-gray-600 mt-1 leading-relaxed">&ldquo;{first.review_text}&rdquo;</div>}
                         <div className="text-xs text-gray-400">

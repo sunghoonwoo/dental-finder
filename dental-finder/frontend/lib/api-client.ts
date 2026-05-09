@@ -42,6 +42,12 @@ export type UserReport = {
   friendliness_score: number | null;
   nickname: string | null;
   created_at: string;
+  consultation_type: string | null;
+  overtreatment_other_teeth: boolean | null;
+  overtreatment_discount_pressure: boolean | null;
+  consultation_time: string | null;
+  tags: string[];
+  receipt_image_url: string | null;
 };
 
 export type TreatmentType = {
@@ -137,6 +143,12 @@ export const api = {
     friendlinessScore: number | null;
     nickname: string | null;
     pin: string;
+    consultationType?: string;
+    overtreatmentOtherTeeth?: boolean;
+    overtreatmentDiscountPressure?: boolean;
+    consultationTime?: string;
+    tags?: string[];
+    receiptImageUrl?: string;
   }): Promise<{ reportIds: string[] }> {
     return post<{ reportIds: string[] }>("/api/reports", body);
   },

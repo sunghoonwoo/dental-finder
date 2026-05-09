@@ -9,7 +9,7 @@ const supabase = createClient(
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { clinicId, treatmentIds, price, visitDate, extraRecommended, extraNote, reviewText, friendlinessScore, nickname, pin } = body;
+    const { clinicId, treatmentIds, price, visitDate, extraRecommended, extraNote, reviewText, friendlinessScore, nickname, pin, consultationType, overtreatmentOtherTeeth, overtreatmentDiscountPressure, consultationTime, tags, receiptImageUrl } = body;
 
     if (!clinicId || !treatmentIds?.length) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -28,6 +28,12 @@ export async function POST(req: NextRequest) {
       review_text: reviewText || null,
       friendliness_score: friendlinessScore,
       nickname: nickname || null,
+      consultation_type: consultationType || null,
+      overtreatment_other_teeth: overtreatmentOtherTeeth ?? null,
+      overtreatment_discount_pressure: overtreatmentDiscountPressure ?? null,
+      consultation_time: consultationTime || null,
+      tags: tags || [],
+      receipt_image_url: receiptImageUrl || null,
     }));
 
     const { data, error } = await supabase

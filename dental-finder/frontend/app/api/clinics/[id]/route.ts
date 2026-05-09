@@ -20,7 +20,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       supabase
         .from("user_price_reports")
         .select(
-          "report_id, visit_id, treatment_id, treatment_types(name), price, visit_date, extra_recommended, extra_note, review_text, friendliness_score, nickname, created_at"
+          "report_id, visit_id, treatment_id, treatment_types(name), price, visit_date, extra_recommended, extra_note, review_text, friendliness_score, nickname, created_at, consultation_type, overtreatment_other_teeth, overtreatment_discount_pressure, consultation_time, tags, receipt_image_url"
         )
         .eq("clinic_id", id)
         .order("created_at", { ascending: false }),
