@@ -26,9 +26,9 @@ BEGIN
     RETURN;
   END IF;
 
-  DELETE FROM user_price_reports
-   WHERE visit_id = v_visit_id
-     AND clinic_id = v_clinic_id;
+  DELETE FROM user_price_reports r
+   WHERE r.visit_id = v_visit_id
+     AND r.clinic_id = v_clinic_id;
 
   RETURN QUERY SELECT true::BOOLEAN, v_visit_id;
 END;
