@@ -303,7 +303,7 @@ function ClinicsPageContent() {
           <div className="flex flex-row items-center gap-2 w-full max-w-full overflow-hidden">
             <input
               type="text"
-              placeholder="치과명 검색"
+              placeholder="검색"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               className="flex-1 min-w-0 h-11 px-3 py-2 bg-white/90 backdrop-blur-sm border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-sm"
