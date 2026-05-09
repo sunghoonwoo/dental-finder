@@ -306,7 +306,7 @@ function ClinicsPageContent() {
               placeholder="치과명 검색"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              className="min-w-0 flex-1 border-0 bg-white rounded-[40px] px-4 sm:px-5 py-3 text-base focus:outline-none focus:ring-2 focus:ring-[#818CF8] placeholder:text-gray-400"
+              className="min-w-0 flex-1 shrink border-0 bg-white rounded-[40px] px-4 sm:px-5 py-3 text-base focus:outline-none focus:ring-2 focus:ring-[#818CF8] placeholder:text-gray-400"
               style={{boxShadow: '0 4px 20px rgba(99,102,241,0.08)'}}
             />
             <button
