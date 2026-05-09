@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>To-Do App</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#6366f1" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="To-Do" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #f0f2f5;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 48px 16px;
+    }
+
+    .app {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+      width: 100%;
+      max-width: 480px;
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      padding: 28px 24px 20px;
+      color: #fff;
+    }
+
+    .header h1 { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.5px; }
+    .stats { margin-top: 6px; font-size: 0.85rem; opacity: 0.85; }
+
+    .input-area {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 16px 20px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .input-row { display: flex; gap: 8px; }
+
+    .input-area input[type="text"] {
+      flex: 1;
+      border: 1.5px solid #e2e2e2;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .input-area input[type="text"]:focus { border-color: #6366f1; }
+
+    .meta-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .meta-row label { font-size: 0.82rem; color: #888; white-space: nowrap; }
+
+    .input-area input[type="date"],
+    .input-area select {
+      flex: 1;
+      border: 1.5px solid #e2e2e2;
+      border-radius: 10px;
+      padding: 7px 10px;
+      font-size: 0.85rem;
+      outline: none;
+      color: #555;
+      background: #fff;
+      transition: border-color 0.2s;
+      cursor: pointer;
+    }
+
+    .input-area input[type="date"]:focus,
+    .input-area select:focus { border-color: #6366f1; }
+
+    .date-clear {
+      background: none;
+      border: none;
+      color: #bbb;
+      font-size: 1rem;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 6px;
+      transition: color 0.15s;
+    }
+
+    .date-clear:hover { color: #ef4444; }
+
+    .input-area button[type="submit"] {
+      background: #6366f1;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 18px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+    }
+
+    .input-area button[type="submit"]:hover { background: #4f46e5; }
+    .input-area button[type="submit"]:active { transform: scale(0.95); }
+
+    /* 필터 영역 */
+    .filter-group {
+      padding: 10px 20px;
+      border-bottom: 1px solid #f0f0f0;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .filters {
+      display: flex;
+      gap: 6px;
+    }
+
+    .filters button {
+      flex: 1;
+      border: 1.5px solid #e2e2e2;
+      background: #fff;
+      border-radius: 8px;
+      padding: 6px;
+      font-size: 0.82rem;
+      cursor: pointer;
+      color: #666;
+      transition: all 0.15s;
+    }
+
+    .filters button.active {
+      background: #6366f1;
+      border-color: #6366f1;
+      color: #fff;
+      font-weight: 600;
+    }
+
+    .cat-filters {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .cat-filters button {
+      border: 1.5px solid #e2e2e2;
+      background: #fff;
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 0.78rem;
+      cursor: pointer;
+      color: #666;
+      transition: all 0.15s;
+    }
+
+    .cat-filters button.active {
+      background: #6366f1;
+      border-color: #6366f1;
+      color: #fff;
+      font-weight: 600;
+    }
+
+    /* 목록 */
+    .list { list-style: none; padding: 8px 0; min-height: 60px; }
+
+    .list-empty {
+      text-align: center;
+      color: #bbb;
+      font-size: 0.9rem;
+      padding: 32px 0;
+    }
+
+    .item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 11px 20px;
+      transition: background 0.15s;
+      animation: slideIn 0.2s ease;
+      border-left: 3px solid transparent;
+    }
+
+    .item.priority-high    { border-left-color: #ef4444; }
+    .item.priority-medium  { border-left-color: #f59e0b; }
+    .item.priority-low     { border-left-color: #10b981; }
+    .item.done             { border-left-color: #d1d5db; }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .item:hover { background: #fafafa; }
+
+    .item input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: #6366f1;
+      cursor: pointer;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .item-body { flex: 1; min-width: 0; }
+
+    .item-top {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .item-text {
+      font-size: 0.95rem;
+      color: #333;
+      word-break: break-word;
+      transition: all 0.2s;
+    }
+
+    .item.done .item-text { text-decoration: line-through; color: #bbb; }
+
+    .badge {
+      display: inline-block;
+      font-size: 0.7rem;
+      padding: 1px 7px;
+      border-radius: 20px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    /* 카테고리 뱃지 */
+    .cat-업무   { background: #eff6ff; color: #3b82f6; }
+    .cat-개인   { background: #f0fdf4; color: #16a34a; }
+    .cat-쇼핑   { background: #fdf4ff; color: #a855f7; }
+    .cat-기타   { background: #f9fafb; color: #6b7280; }
+
+    /* 우선순위 뱃지 */
+    .pri-high   { background: #fef2f2; color: #ef4444; }
+    .pri-medium { background: #fffbeb; color: #d97706; }
+    .pri-low    { background: #f0fdf4; color: #10b981; }
+
+    .item-meta { margin-top: 4px; display: flex; gap: 6px; flex-wrap: wrap; }
+
+    .item-due {
+      display: inline-block;
+      font-size: 0.75rem;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-weight: 500;
+    }
+
+    .due-normal  { background: #f0f0f0; color: #888; }
+    .due-today   { background: #fff3e0; color: #e67e00; }
+    .due-overdue { background: #ffeaea; color: #e53e3e; }
+    .due-done    { background: #f0f0f0; color: #bbb; text-decoration: line-through; }
+
+    .item-delete {
+      background: none;
+      border: none;
+      color: #ccc;
+      font-size: 1.1rem;
+      cursor: pointer;
+      padding: 2px 6px;
+      border-radius: 6px;
+      transition: color 0.15s, background 0.15s;
+      flex-shrink: 0;
+    }
+
+    .item-delete:hover { color: #ef4444; background: #fff0f0; }
+
+    .footer {
+      padding: 12px 20px;
+      border-top: 1px solid #f0f0f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.82rem;
+      color: #aaa;
+    }
+
+    .clear-btn {
+      background: none;
+      border: none;
+      color: #aaa;
+      font-size: 0.82rem;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    .clear-btn:hover { color: #ef4444; }
+
+    /* 설치 배너 (하단 고정) */
+    .install-banner {
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: #fff;
+      padding: 14px 20px 20px;
+      font-size: 0.88rem;
+      box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+      z-index: 50;
+    }
+
+    .install-banner.visible { display: flex; }
+
+    .install-banner span { flex: 1; line-height: 1.4; }
+
+    .install-banner-btn {
+      background: #fff;
+      color: #6366f1;
+      border: none;
+      border-radius: 8px;
+      padding: 7px 14px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .install-banner-close {
+      background: none;
+      border: none;
+      color: rgba(255,255,255,0.7);
+      font-size: 1.1rem;
+      cursor: pointer;
+      padding: 0 4px;
+      flex-shrink: 0;
+    }
+
+    /* iOS 안내 모달 */
+    .ios-modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 100;
+      align-items: flex-end;
+      justify-content: center;
+    }
+
+    .ios-modal-backdrop.visible { display: flex; }
+
+    .ios-modal {
+      background: #fff;
+      border-radius: 20px 20px 0 0;
+      padding: 24px 24px 36px;
+      width: 100%;
+      max-width: 480px;
+    }
+
+    .ios-modal h3 { font-size: 1.1rem; margin-bottom: 16px; color: #333; }
+
+    .ios-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .ios-step-num {
+      background: #6366f1;
+      color: #fff;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .ios-step p { font-size: 0.9rem; color: #555; line-height: 1.5; margin-top: 2px; }
+
+    .ios-modal-close {
+      width: 100%;
+      margin-top: 16px;
+      background: #f0f2f5;
+      border: none;
+      border-radius: 10px;
+      padding: 12px;
+      font-size: 0.95rem;
+      color: #555;
+      cursor: pointer;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <!-- Android 안내 모달 -->
+  <div class="ios-modal-backdrop" id="android-modal">
+    <div class="ios-modal">
+      <h3>📲 홈 화면에 추가하기</h3>
+      <div class="ios-step">
+        <div class="ios-step-num">1</div>
+        <p>Chrome 브라우저 오른쪽 상단 <strong>"⋮" 버튼</strong>을 탭하세요</p>
+      </div>
+      <div class="ios-step">
+        <div class="ios-step-num">2</div>
+        <p><strong>"앱 설치"</strong> 또는 <strong>"홈 화면에 추가"</strong>를 탭하세요</p>
+      </div>
+      <div class="ios-step">
+        <div class="ios-step-num">3</div>
+        <p><strong>"설치"</strong>를 탭하면 완료!</p>
+      </div>
+      <button class="ios-modal-close" id="android-modal-close">닫기</button>
+    </div>
+  </div>
+
+  <!-- iOS 안내 모달 -->
+  <div class="ios-modal-backdrop" id="ios-modal">
+    <div class="ios-modal">
+      <h3>📲 홈 화면에 추가하기</h3>
+      <div class="ios-step">
+        <div class="ios-step-num">1</div>
+        <p>Safari 툴바의 <strong>"..." 버튼</strong>을 탭하세요</p>
+      </div>
+      <div class="ios-step">
+        <div class="ios-step-num">2</div>
+        <p><strong>"공유"</strong> 를 탭하세요</p>
+      </div>
+      <div class="ios-step">
+        <div class="ios-step-num">3</div>
+        <p><strong>"더보기"</strong> 를 탭하세요</p>
+      </div>
+      <div class="ios-step">
+        <div class="ios-step-num">4</div>
+        <p><strong>"홈 화면에 추가"</strong> 탭 → <strong>"추가"</strong> 탭하면 완료!</p>
+      </div>
+      <button class="ios-modal-close" id="ios-modal-close">닫기</button>
+    </div>
+  </div>
+
+  <!-- 설치 배너 (하단 고정) -->
+  <div class="install-banner" id="install-banner">
+    <span>홈 화면에 추가하면 앱처럼 사용할 수 있어요!</span>
+    <button class="install-banner-btn" id="install-btn">설치</button>
+    <button class="install-banner-close" id="install-close">✕</button>
+  </div>
+
+  <div class="app">
+    <div class="header">
+      <h1>✅ To-Do</h1>
+      <div class="stats" id="stats">할 일 0개</div>
+    </div>
+
+    <div class="input-area">
+      <div class="input-row">
+        <input id="input" type="text" placeholder="새로운 할 일 입력..." maxlength="100" />
+        <button type="submit" id="add-btn" title="추가">＋</button>
+      </div>
+      <div class="meta-row">
+        <label>카테고리</label>
+        <select id="cat-input">
+          <option value="업무">💼 업무</option>
+          <option value="개인">🙂 개인</option>
+          <option value="쇼핑">🛒 쇼핑</option>
+          <option value="기타">📌 기타</option>
+        </select>
+        <label>우선순위</label>
+        <select id="pri-input">
+          <option value="medium">🟡 중간</option>
+          <option value="high">🔴 높음</option>
+          <option value="low">🟢 낮음</option>
+        </select>
+      </div>
+      <div class="meta-row">
+        <label for="date-input">마감일</label>
+        <input id="date-input" type="date" />
+        <button class="date-clear" id="date-clear" title="날짜 지우기">✕</button>
+      </div>
+    </div>
+
+    <div class="filter-group">
+      <div class="filters">
+        <button class="active" data-filter="all">전체</button>
+        <button data-filter="active">진행 중</button>
+        <button data-filter="done">완료</button>
+        <button data-filter="overdue">기한 초과</button>
+      </div>
+      <div class="cat-filters">
+        <button class="active" data-cat="all">전체</button>
+        <button data-cat="업무">💼 업무</button>
+        <button data-cat="개인">🙂 개인</button>
+        <button data-cat="쇼핑">🛒 쇼핑</button>
+        <button data-cat="기타">📌 기타</button>
+      </div>
+    </div>
+
+    <ul class="list" id="list"></ul>
+
+    <div class="footer">
+      <span id="remaining"></span>
+      <button class="clear-btn" id="clear-btn">완료 항목 삭제</button>
+    </div>
+  </div>
+
+  <script>
+    let todos  = JSON.parse(localStorage.getItem('todos') || '[]');
+    let filter = 'all';
+    let catFilter = 'all';
+
+    const input    = document.getElementById('input');
+    const dateInput = document.getElementById('date-input');
+    const catInput = document.getElementById('cat-input');
+    const priInput = document.getElementById('pri-input');
+    const list     = document.getElementById('list');
+    const stats    = document.getElementById('stats');
+    const remaining = document.getElementById('remaining');
+
+    const PRI_LABEL = { high: '높음', medium: '중간', low: '낮음' };
+    const PRI_CLS   = { high: 'pri-high', medium: 'pri-medium', low: 'pri-low' };
+
+    function todayStr() { return new Date().toISOString().slice(0, 10); }
+
+    function dueLabel(due, done) {
+      if (!due) return '';
+      const today = todayStr();
+      const formatted = due.replace(/-/g, '.');
+      if (done)          return `<span class="item-due due-done">📅 ${formatted}</span>`;
+      if (due < today)   return `<span class="item-due due-overdue">⚠️ ${formatted} 기한 초과</span>`;
+      if (due === today) return `<span class="item-due due-today">🔔 오늘까지</span>`;
+      return `<span class="item-due due-normal">📅 ${formatted}</span>`;
+    }
+
+    function save() { localStorage.setItem('todos', JSON.stringify(todos)); }
+
+    function render() {
+      const today = todayStr();
+      const filtered = todos.filter(t => {
+        const statusOk =
+          filter === 'active'  ? !t.done :
+          filter === 'done'    ? t.done :
+          filter === 'overdue' ? (!t.done && t.due && t.due < today) :
+          true;
+        const catOk = catFilter === 'all' || t.category === catFilter;
+        return statusOk && catOk;
+      });
+
+      list.innerHTML = filtered.length === 0
+        ? `<li class="list-empty">항목이 없습니다</li>`
+        : filtered.map(t => `
+            <li class="item priority-${t.priority || 'medium'} ${t.done ? 'done' : ''}" data-id="${t.id}">
+              <input type="checkbox" ${t.done ? 'checked' : ''} data-action="toggle" />
+              <div class="item-body">
+                <div class="item-top">
+                  <span class="item-text">${escHtml(t.text)}</span>
+                  <span class="badge cat-${t.category || '기타'}">${t.category || '기타'}</span>
+                  <span class="badge ${PRI_CLS[t.priority || 'medium']}">${PRI_LABEL[t.priority || 'medium']}</span>
+                </div>
+                <div class="item-meta">${dueLabel(t.due, t.done)}</div>
+              </div>
+              <button class="item-delete" data-action="delete" title="삭제">✕</button>
+            </li>
+          `).join('');
+
+      const total   = todos.length;
+      const done    = todos.filter(t => t.done).length;
+      const overdue = todos.filter(t => !t.done && t.due && t.due < today).length;
+      stats.textContent = `총 ${total}개 · 완료 ${done}개${overdue > 0 ? ` · 초과 ${overdue}개` : ''}`;
+      remaining.textContent = `남은 항목 ${total - done}개`;
+    }
+
+    function addTodo() {
+      const text = input.value.trim();
+      if (!text) return;
+      todos.unshift({
+        id: Date.now(),
+        text,
+        done: false,
+        due: dateInput.value || null,
+        category: catInput.value,
+        priority: priInput.value,
+      });
+      input.value = '';
+      dateInput.value = '';
+      save();
+      render();
+    }
+
+    function escHtml(str) {
+      return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    document.getElementById('add-btn').addEventListener('click', addTodo);
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') addTodo(); });
+    document.getElementById('date-clear').addEventListener('click', () => { dateInput.value = ''; });
+
+    list.addEventListener('click', e => {
+      const item = e.target.closest('[data-id]');
+      if (!item) return;
+      const id = Number(item.dataset.id);
+      const action = e.target.dataset.action;
+      if (action === 'toggle') {
+        todos = todos.map(t => t.id === id ? { ...t, done: !t.done } : t);
+        save(); render();
+      } else if (action === 'delete') {
+        todos = todos.filter(t => t.id !== id);
+        save(); render();
+      }
+    });
+
+    document.querySelectorAll('.filters button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        filter = btn.dataset.filter;
+        document.querySelectorAll('.filters button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        render();
+      });
+    });
+
+    document.querySelectorAll('.cat-filters button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        catFilter = btn.dataset.cat;
+        document.querySelectorAll('.cat-filters button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        render();
+      });
+    });
+
+    document.getElementById('clear-btn').addEventListener('click', () => {
+      todos = todos.filter(t => !t.done);
+      save(); render();
+    });
+
+    render();
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js');
+    }
+
+    const isInstalled = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+
+    if (!isInstalled) {
+      const isIOS     = /iphone|ipad|ipod/i.test(navigator.userAgent);
+      const isAndroid = /android/i.test(navigator.userAgent);
+      const banner      = document.getElementById('install-banner');
+      const iosModal    = document.getElementById('ios-modal');
+      const androidModal = document.getElementById('android-modal');
+
+      let deferredPrompt = null;
+
+      // iOS: 항상 배너 표시
+      if (isIOS) {
+        banner.classList.add('visible');
+        document.getElementById('install-btn').addEventListener('click', () => {
+          iosModal.classList.add('visible');
+        });
+      }
+
+      // Android: beforeinstallprompt 또는 수동 안내
+      if (isAndroid) {
+        banner.classList.add('visible');
+        window.addEventListener('beforeinstallprompt', e => {
+          e.preventDefault();
+          deferredPrompt = e;
+        });
+        document.getElementById('install-btn').addEventListener('click', async () => {
+          if (deferredPrompt) {
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            if (outcome === 'accepted') banner.classList.remove('visible');
+            deferredPrompt = null;
+          } else {
+            androidModal.classList.add('visible');
+          }
+        });
+      }
+
+      // 데스크탑: beforeinstallprompt 있을 때만 배너 표시
+      if (!isIOS && !isAndroid) {
+        window.addEventListener('beforeinstallprompt', e => {
+          e.preventDefault();
+          deferredPrompt = e;
+          banner.classList.add('visible');
+        });
+        document.getElementById('install-btn').addEventListener('click', async () => {
+          if (!deferredPrompt) return;
+          deferredPrompt.prompt();
+          const { outcome } = await deferredPrompt.userChoice;
+          if (outcome === 'accepted') banner.classList.remove('visible');
+          deferredPrompt = null;
+        });
+      }
+
+      document.getElementById('install-close').addEventListener('click', () => {
+        banner.classList.remove('visible');
+      });
+
+      document.getElementById('ios-modal-close').addEventListener('click', () => {
+        iosModal.classList.remove('visible');
+      });
+      iosModal.addEventListener('click', e => {
+        if (e.target === iosModal) iosModal.classList.remove('visible');
+      });
+
+      document.getElementById('android-modal-close').addEventListener('click', () => {
+        androidModal.classList.remove('visible');
+      });
+      androidModal.addEventListener('click', e => {
+        if (e.target === androidModal) androidModal.classList.remove('visible');
+      });
+    }
+  </script>
+</body>
+</html>
