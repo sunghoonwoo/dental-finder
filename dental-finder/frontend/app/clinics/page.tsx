@@ -306,19 +306,20 @@ function ClinicsPageContent() {
               placeholder="검색"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              className="flex-1 min-w-0 h-11 px-3 py-2 bg-white/90 backdrop-blur-sm border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-sm"
+              className="flex-1 min-w-0 border-0 bg-white rounded-[40px] px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-[#818CF8] placeholder:text-gray-400"
+              style={{boxShadow: '0 4px 20px rgba(99,102,241,0.08)'}}
             />
             <button
               onClick={() => {
                 const newValue = !priceReportOnly;
                 setPriceReportOnly(newValue);
-                updateURL({ reportOnly: newValue ? "true" : "", page: "" });
               }}
-              className={`shrink-0 h-11 px-3 rounded-xl font-bold text-sm transition-all shadow-md flex items-center justify-center ${
+              className={`shrink-0 h-[48px] px-4 rounded-[40px] font-bold text-sm transition-all shadow-md flex items-center justify-center ${
                 priceReportOnly 
                   ? "bg-[#FF9800] text-white" 
                   : "bg-white text-[#FF9800] hover:bg-orange-50"
               }`}
+              style={{boxShadow: priceReportOnly ? '0 4px 20px rgba(255,183,77,0.3)' : '0 4px 20px rgba(99,102,241,0.08)'}}
             >
               {priceReportOnly ? "경험 공유 ✕" : "경험 공유"}
             </button>
