@@ -312,7 +312,7 @@ function ClinicsPageContent() {
               placeholder="검색"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              className="flex-1 min-w-0 h-11 border-0 bg-white rounded-[40px] px-4 py-2 text-base focus:outline-none focus:ring-2 focus:ring-[#818CF8] placeholder:text-gray-400"
+              className="flex-1 min-w-0 h-11 border-0 bg-white rounded-[40px] px-4 py-2 text-base text-black font-semibold focus:outline-none focus:ring-2 focus:ring-[#818CF8] placeholder:text-gray-400 placeholder:font-normal"
               style={{boxShadow: '0 4px 20px rgba(99,102,241,0.08)'}}
             />
             <button
