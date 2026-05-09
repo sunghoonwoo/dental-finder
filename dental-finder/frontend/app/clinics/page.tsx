@@ -181,7 +181,7 @@ function ClinicsPageContent() {
   return (
     <div className="mx-auto w-full max-w-[640px] px-3 sm:px-4">
       {/* 탭 */}
-      <div className="flex rounded-[40px] bg-white p-0.5 mb-2" style={{boxShadow: '0 4px 20px rgba(99,102,241,0.08)'}}>
+      <div className="flex rounded-[40px] bg-white p-0.5 mb-1" style={{boxShadow: '0 4px 20px rgba(99,102,241,0.08)'}}>
         {(["nearby", "region"] as Tab[]).map((t) => (
           <button
             key={t}
@@ -202,14 +202,14 @@ function ClinicsPageContent() {
 
       {/* 지역 선택 (region 탭) */}
       {tab === "region" && (
-        <div className="mb-2 flex gap-3">
+        <div className="mb-1 flex gap-2">
           <select
             value={city}
             onChange={(e) => {
               setCity(e.target.value);
               updateURL({ city: e.target.value, district: "", page: "" });
             }}
-            className="flex-1 border-0 bg-white rounded-[40px] px-5 py-3 text-base text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#818CF8]"
+            className="flex-1 border-0 bg-white rounded-[40px] px-4 py-2 text-base text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#818CF8]"
             style={{boxShadow: '0 4px 20px rgba(99,102,241,0.08)'}}
           >
             {CITIES.map((c) => <option key={c} value={c}>{c}</option>)}
@@ -221,7 +221,7 @@ function ClinicsPageContent() {
                 setDistrict(e.target.value);
                 updateURL({ district: e.target.value, page: "" });
               }}
-              className="flex-1 border-0 bg-white rounded-[40px] px-5 py-3 text-base text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#818CF8]"
+            className="flex-1 border-0 bg-white rounded-[40px] px-4 py-2 text-base text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#818CF8]"
               style={{boxShadow: '0 4px 20px rgba(99,102,241,0.08)'}}
             >
               <option value="">전체 구/군</option>
@@ -233,10 +233,10 @@ function ClinicsPageContent() {
 
       {/* 위치 오류 */}
       {tab === "nearby" && geoError && (
-        <div className="bg-yellow-50/90 backdrop-blur-sm border border-yellow-200 rounded-[40px] p-4 mb-2 text-sm text-yellow-800 space-y-2">
+        <div className="bg-yellow-50/90 backdrop-blur-sm border border-yellow-200 rounded-[40px] p-2 mb-1 text-sm text-yellow-800 space-y-1">
           <div className="font-medium">{geoError}</div>
           <div className="text-xs text-yellow-600">Safari <strong>AA → 웹사이트 설정 → 위치 → 물어보기</strong></div>
-          <div className="flex gap-3 pt-1">
+          <div className="flex gap-2 pt-0.5">
             <button onClick={() => setGeoError(null)} className="underline font-medium text-sm">다시 시도</button>
             <button onClick={() => { setTab("region"); updateURL({ tab: "region" }); }} className="underline font-medium text-sm">지역으로 찾기 →</button>
           </div>
@@ -245,7 +245,7 @@ function ClinicsPageContent() {
 
       {/* 위치 버튼 (nearby탭, 위치 없음) */}
       {tab === "nearby" && !userPos && !geoError && (
-        <div className="flex flex-col items-center py-8 gap-3">
+        <div className="flex flex-col items-center py-4 gap-2">
           <div className="text-gray-400 text-sm font-medium">내 주변 치과를 찾으려면 위치 권한이 필요합니다</div>
           <button onClick={handleSearchNearMe} disabled={geoLoading} className="flex items-center gap-2 bg-gradient-to-r from-[#818CF8] to-[#6366F1] hover:from-[#6366F1] hover:to-[#4F46E5] text-white font-semibold px-8 py-3.5 rounded-[40px] text-sm transition disabled:opacity-50 whitespace-nowrap"
             style={{boxShadow: '0 8px 25px rgba(99,102,241,0.25)'}}
@@ -257,7 +257,7 @@ function ClinicsPageContent() {
 
       {/* 지도 + 통합 검색 버튼 (nearby탭, 위치 있음) */}
       {tab === "nearby" && userPos && (
-        <div className="mb-2 relative" style={{ height: '35vh' }}>
+        <div className="mb-1 relative" style={{ height: '35vh' }}>
           <div className="-mx-3 sm:mx-0 rounded-none sm:rounded-[32px] overflow-hidden h-full" style={{boxShadow: '0 8px 30px rgba(0,0,0,0.04)'}}>
             <NearbyMap
               ref={mapRef}
@@ -273,12 +273,12 @@ function ClinicsPageContent() {
             />
           </div>
           {/* 통합 검색 버튼 - 지도 위에 고정 */}
-          <div className="absolute bottom-2 sm:bottom-4 left-0 right-0 flex justify-center gap-2 z-50 pointer-events-none">
+          <div className="absolute bottom-1 sm:bottom-2 left-0 right-0 flex justify-center gap-2 z-50 pointer-events-none">
             <div className="pointer-events-auto">
               <button
                 onClick={handleSearchNearMe}
                 disabled={geoLoading}
-                className="flex items-center gap-1.5 px-3 sm:px-5 py-2.5 bg-white/95 backdrop-blur-md text-[#6366F1] font-semibold rounded-[32px] text-xs hover:bg-white transition-all duration-200 whitespace-nowrap"
+                className="flex items-center gap-1 px-3 sm:px-4 py-1.5 bg-white/95 backdrop-blur-md text-[#6366F1] font-semibold rounded-[32px] text-xs hover:bg-white transition-all duration-200 whitespace-nowrap"
                 style={{boxShadow: '0 4px 20px rgba(99,102,241,0.15)'}}
               >
                 {geoLoading ? "위치 중..." : "내 위치"}
@@ -287,7 +287,7 @@ function ClinicsPageContent() {
             <div className="pointer-events-auto">
               <button
                 onClick={handleSearchInThisArea}
-                className="flex items-center gap-1.5 px-3 sm:px-5 py-2.5 bg-white/95 backdrop-blur-md text-[#6366F1] font-semibold rounded-[32px] text-xs hover:bg-white transition-all duration-200 whitespace-nowrap"
+                className="flex items-center gap-1 px-3 sm:px-4 py-1.5 bg-white/95 backdrop-blur-md text-[#6366F1] font-semibold rounded-[32px] text-xs hover:bg-white transition-all duration-200 whitespace-nowrap"
                 style={{boxShadow: '0 4px 20px rgba(99,102,241,0.15)'}}
               >
                 이 지역
@@ -299,14 +299,14 @@ function ClinicsPageContent() {
 
       {/* 검색 + 필터 */}
       {(tab === "region" || (tab === "nearby" && userPos)) && (
-        <div className="mb-2 space-y-3">
+        <div className="mb-1">
           <div className="flex flex-row items-center gap-2 w-full max-w-full overflow-hidden">
             <input
               type="text"
               placeholder="검색"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              className="flex-1 min-w-0 border-0 bg-white rounded-[40px] px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-[#818CF8] placeholder:text-gray-400"
+              className="flex-1 min-w-0 border-0 bg-white rounded-[40px] px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-[#818CF8] placeholder:text-gray-400"
               style={{boxShadow: '0 4px 20px rgba(99,102,241,0.08)'}}
             />
             <button
@@ -314,7 +314,7 @@ function ClinicsPageContent() {
                 const newValue = !priceReportOnly;
                 setPriceReportOnly(newValue);
               }}
-              className={`shrink-0 h-[48px] px-4 rounded-[40px] font-bold text-sm transition-all shadow-md flex items-center justify-center ${
+              className={`shrink-0 h-10 px-3 rounded-[40px] font-bold text-sm transition-all shadow-md flex items-center justify-center ${
                 priceReportOnly 
                   ? "bg-[#FF9800] text-white" 
                   : "bg-white text-[#FF9800] hover:bg-orange-50"
