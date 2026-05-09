@@ -300,7 +300,7 @@ function ClinicsPageContent() {
       {/* 검색 + 필터 */}
       {(tab === "region" || (tab === "nearby" && userPos)) && (
         <div className="mb-4 space-y-3">
-          <div className="flex gap-2 sm:gap-3">
+          <div className="flex flex-row items-center gap-2 sm:gap-3">
             <input
               type="text"
               placeholder="치과명 검색"
