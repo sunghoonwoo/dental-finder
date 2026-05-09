@@ -179,9 +179,9 @@ function ClinicsPageContent() {
   }, [searchParams, router]);
 
   return (
-    <div className="px-4 md:px-8">
+    <div className="mx-auto w-full max-w-[640px] px-3 sm:px-4">
       {/* 탭 */}
-      <div className="flex rounded-[40px] bg-white p-1 mb-6" style={{boxShadow: '0 4px 20px rgba(99,102,241,0.08)'}}>
+      <div className="flex rounded-[40px] bg-white p-0.5 mb-2" style={{boxShadow: '0 4px 20px rgba(99,102,241,0.08)'}}>
         {(["nearby", "region"] as Tab[]).map((t) => (
           <button
             key={t}
@@ -189,7 +189,7 @@ function ClinicsPageContent() {
               setTab(t);
               updateURL({ tab: t, page: "" });
             }}
-            className={`flex-1 py-3 rounded-[36px] text-sm font-semibold transition-all duration-200 ${
+            className={`flex-1 py-2 rounded-[36px] text-sm font-semibold transition-all duration-200 ${
               tab === t 
                 ? "bg-gradient-to-r from-[#818CF8] to-[#6366F1] text-white shadow-lg shadow-indigo-200/50" 
                 : "text-gray-500 hover:bg-gray-50"
@@ -202,7 +202,7 @@ function ClinicsPageContent() {
 
       {/* 지역 선택 (region 탭) */}
       {tab === "region" && (
-        <div className="mb-4 flex gap-3">
+        <div className="mb-2 flex gap-3">
           <select
             value={city}
             onChange={(e) => {
@@ -233,7 +233,7 @@ function ClinicsPageContent() {
 
       {/* 위치 오류 */}
       {tab === "nearby" && geoError && (
-        <div className="bg-yellow-50/90 backdrop-blur-sm border border-yellow-200 rounded-[40px] p-4 mb-4 text-sm text-yellow-800 space-y-2">
+        <div className="bg-yellow-50/90 backdrop-blur-sm border border-yellow-200 rounded-[40px] p-4 mb-2 text-sm text-yellow-800 space-y-2">
           <div className="font-medium">{geoError}</div>
           <div className="text-xs text-yellow-600">Safari <strong>AA → 웹사이트 설정 → 위치 → 물어보기</strong></div>
           <div className="flex gap-3 pt-1">
@@ -245,7 +245,7 @@ function ClinicsPageContent() {
 
       {/* 위치 버튼 (nearby탭, 위치 없음) */}
       {tab === "nearby" && !userPos && !geoError && (
-        <div className="flex flex-col items-center py-16 gap-4">
+        <div className="flex flex-col items-center py-8 gap-3">
           <div className="text-gray-400 text-sm font-medium">내 주변 치과를 찾으려면 위치 권한이 필요합니다</div>
           <button onClick={handleSearchNearMe} disabled={geoLoading} className="flex items-center gap-2 bg-gradient-to-r from-[#818CF8] to-[#6366F1] hover:from-[#6366F1] hover:to-[#4F46E5] text-white font-semibold px-8 py-3.5 rounded-[40px] text-sm transition disabled:opacity-50 whitespace-nowrap"
             style={{boxShadow: '0 8px 25px rgba(99,102,241,0.25)'}}
@@ -257,8 +257,8 @@ function ClinicsPageContent() {
 
       {/* 지도 + 통합 검색 버튼 (nearby탭, 위치 있음) */}
       {tab === "nearby" && userPos && (
-        <div className="mb-6 relative" style={{ height: '35vh' }}>
-          <div className="rounded-[32px] overflow-hidden h-full" style={{boxShadow: '0 8px 30px rgba(0,0,0,0.04)'}}>
+        <div className="mb-2 relative" style={{ height: '35vh' }}>
+          <div className="-mx-3 sm:mx-0 rounded-none sm:rounded-[32px] overflow-hidden h-full" style={{boxShadow: '0 8px 30px rgba(0,0,0,0.04)'}}>
             <NearbyMap
               ref={mapRef}
               userPos={userPos}
@@ -273,7 +273,7 @@ function ClinicsPageContent() {
             />
           </div>
           {/* 통합 검색 버튼 - 지도 위에 고정 */}
-          <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 z-50 pointer-events-none">
+          <div className="absolute bottom-2 sm:bottom-4 left-0 right-0 flex justify-center gap-2 z-50 pointer-events-none">
             <div className="pointer-events-auto">
               <button
                 onClick={handleSearchNearMe}
@@ -299,7 +299,7 @@ function ClinicsPageContent() {
 
       {/* 검색 + 필터 */}
       {(tab === "region" || (tab === "nearby" && userPos)) && (
-        <div className="mb-4 space-y-3">
+        <div className="mb-2 space-y-3">
           <div className="flex flex-row items-center gap-2 w-full max-w-full overflow-hidden">
             <input
               type="text"
