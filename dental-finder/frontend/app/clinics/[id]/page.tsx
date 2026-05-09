@@ -45,10 +45,16 @@ export default function ClinicDetailPage() {
 
   async function openPinPrompt(reportId: string, action: "edit" | "delete") {
     if (action === "delete") {
-      const { requiresPin } = await api.reportRequiresPin(reportId);
-      if (!requiresPin) {
-        await api.deleteReport(reportId, "");
-        loadData();
+      try {
+        const { requiresPin } = await api.reportRequiresPin(reportId);
+        if (!requiresPin) {
+          await api.deleteReport(reportId, "");
+          loadData();
+          return;
+        }
+      } catch (e) {
+        console.error("Delete failed:", e);
+        setPinError(true);
         return;
       }
     }
@@ -62,37 +68,43 @@ export default function ClinicDetailPage() {
     setPinVerifying(true);
     setPinError(false);
 
-    if (pinState.action === "delete") {
-      const { ok } = await api.deleteReport(pinState.reportId, pinInput);
-      if (!ok) { setPinError(true); setPinVerifying(false); return; }
-      setPinState(null);
-      setPinVerifying(false);
-      loadData();
-    } else {
-      const { ok } = await api.verifyPin(pinState.reportId, pinInput);
-      if (!ok) { setPinError(true); setPinVerifying(false); return; }
-      const report = clinic?.userReports.find((r) => r.report_id === pinState.reportId);
-      if (report) {
-        setEditingReport({
-          reportId: report.report_id,
-          visitId: report.visit_id ?? undefined,
-          treatmentId: report.treatment_id,
-          price: report.price != null ? report.price.toLocaleString() : "",
-          visitDate: report.visit_date ?? "",
-          extraRecommended: report.extra_recommended,
-          extraNote: report.extra_note ?? "",
-          reviewText: report.review_text ?? "",
-          friendlinessScore: report.friendliness_score,
-          nickname: report.nickname ?? "",
-          consultationType: report.consultation_type ?? "",
-          overtreatmentOtherTeeth: report.overtreatment_other_teeth ?? null,
-          overtreatmentDiscountPressure: report.overtreatment_discount_pressure ?? null,
-          consultationTime: report.consultation_time ?? "",
-          tags: report.tags ?? [],
-          receiptImageUrl: report.receipt_image_url ?? "",
-        });
+    try {
+      if (pinState.action === "delete") {
+        const { ok } = await api.deleteReport(pinState.reportId, pinInput);
+        if (!ok) { setPinError(true); setPinVerifying(false); return; }
+        setPinState(null);
+        setPinVerifying(false);
+        loadData();
+      } else {
+        const { ok } = await api.verifyPin(pinState.reportId, pinInput);
+        if (!ok) { setPinError(true); setPinVerifying(false); return; }
+        const report = clinic?.userReports.find((r) => r.report_id === pinState.reportId);
+        if (report) {
+          setEditingReport({
+            reportId: report.report_id,
+            visitId: report.visit_id ?? undefined,
+            treatmentId: report.treatment_id,
+            price: report.price != null ? report.price.toLocaleString() : "",
+            visitDate: report.visit_date ?? "",
+            extraRecommended: report.extra_recommended,
+            extraNote: report.extra_note ?? "",
+            reviewText: report.review_text ?? "",
+            friendlinessScore: report.friendliness_score,
+            nickname: report.nickname ?? "",
+            consultationType: report.consultation_type ?? "",
+            overtreatmentOtherTeeth: report.overtreatment_other_teeth ?? null,
+            overtreatmentDiscountPressure: report.overtreatment_discount_pressure ?? null,
+            consultationTime: report.consultation_time ?? "",
+            tags: report.tags ?? [],
+            receiptImageUrl: report.receipt_image_url ?? "",
+          });
+        }
+        setPinState(null);
+        setPinVerifying(false);
       }
-      setPinState(null);
+    } catch (e) {
+      console.error("Pin action failed:", e);
+      setPinError(true);
       setPinVerifying(false);
     }
   }
