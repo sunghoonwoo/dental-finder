@@ -300,14 +300,13 @@ function ClinicsPageContent() {
       {/* 검색 + 필터 */}
       {(tab === "region" || (tab === "nearby" && userPos)) && (
         <div className="mb-4 space-y-3">
-          <div className="flex flex-row items-center gap-2 sm:gap-3">
+          <div className="flex flex-row items-center gap-2 w-full max-w-full overflow-hidden">
             <input
               type="text"
               placeholder="치과명 검색"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              className="min-w-0 flex-1 shrink border-0 bg-white rounded-[40px] px-4 sm:px-5 py-3 text-base focus:outline-none focus:ring-2 focus:ring-[#818CF8] placeholder:text-gray-400"
-              style={{boxShadow: '0 4px 20px rgba(99,102,241,0.08)'}}
+              className="flex-1 min-w-0 h-11 px-3 py-2 bg-white/90 backdrop-blur-sm border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-sm"
             />
             <button
               onClick={() => {
@@ -315,12 +314,11 @@ function ClinicsPageContent() {
                 setPriceReportOnly(newValue);
                 updateURL({ reportOnly: newValue ? "true" : "", page: "" });
               }}
-              className={`flex items-center justify-center gap-2 px-4 sm:px-5 py-3 rounded-[40px] text-sm font-semibold border-0 transition whitespace-nowrap shrink-0 ${
+              className={`shrink-0 h-11 px-3 rounded-xl font-bold text-sm transition-all shadow-md flex items-center justify-center ${
                 priceReportOnly 
-                  ? "bg-[#FFB74D] text-white" 
+                  ? "bg-[#FF9800] text-white" 
                   : "bg-white text-[#FF9800] hover:bg-orange-50"
               }`}
-              style={{boxShadow: priceReportOnly ? '0 4px 20px rgba(255,183,77,0.3)' : '0 4px 20px rgba(99,102,241,0.08)'}}
             >
               {priceReportOnly ? "경험 공유 ✕" : "경험 공유"}
             </button>
