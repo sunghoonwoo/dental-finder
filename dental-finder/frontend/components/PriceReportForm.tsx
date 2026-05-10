@@ -303,7 +303,7 @@ export default function PriceReportForm({ clinicId, initialValues, onSuccess, on
           disabled={submitting}
           className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl transition disabled:opacity-50"
         >
-          {submitting ? (isEdit ? "수정 중..." : "제보 중...") : (isEdit ? "수정하기" : "제보하기")}
+          {submitting ? (isEdit ? "수정 중..." : "공유 중...") : (isEdit ? "수정하기" : "공유하기")}
         </button>
       </div>
     </form>

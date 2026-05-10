@@ -134,7 +134,7 @@ export default function ClinicDetailPage() {
     <div>
       <button
         onClick={() => router.back()}
-        className="flex items-center gap-2 text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 px-4 py-2.5 rounded-xl transition mb-4 -ml-4"
+        className="flex items-center gap-2 text-base font-medium text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-slate-700 px-4 py-2.5 rounded-xl transition mb-4 -ml-4"
       >
         <ChevronLeft size={20} strokeWidth={2.5} />
         뒤로가기
@@ -167,7 +167,7 @@ export default function ClinicDetailPage() {
       <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-bold text-gray-900">
-            가격 & 경험 제보
+            가격 & 경험 공유
             {groupedVisits.length > 0 && <span className="ml-2 text-sm font-normal text-gray-400">{groupedVisits.length}건</span>}
           </h2>
           <div className="flex items-center gap-2">
@@ -257,7 +257,7 @@ export default function ClinicDetailPage() {
                         <div className="text-xs text-gray-400">
                           {first.nickname ?? "익명"}
                           {first.visit_date && ` · 진료 ${new Date(first.visit_date).toLocaleDateString("ko-KR")}`}
-                          {` · 제보 ${new Date(first.created_at).toLocaleDateString("ko-KR")}`}
+                          {` · 공유 ${new Date(first.created_at).toLocaleDateString("ko-KR")}`}
                         </div>
                       </div>
                       <div className="flex gap-1 shrink-0">
@@ -274,20 +274,20 @@ export default function ClinicDetailPage() {
 
         {!userReports.length && !showForm && (
           <p className="text-sm text-gray-400 text-center py-4 mb-4">
-            아직 제보가 없습니다. 첫 번째 제보자가 되어보세요!
+            아직 공유된 경험이 없습니다. 첫 번째로 공유해보세요!
           </p>
         )}
 
         {submitted && (
           <div className="bg-green-50 border border-green-200 text-green-700 text-sm rounded-xl px-4 py-3 mb-4">
-            제보해 주셔서 감사합니다! 다른 분들께 큰 도움이 됩니다.
+            공유해 주셔서 감사합니다! 다른 분들께 큰 도움이 됩니다.
           </div>
         )}
 
         {showForm ? (
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-gray-800">경험 제보하기</h3>
+              <h3 className="font-semibold text-gray-800">경험 공유하기</h3>
               <button onClick={() => setShowForm(false)} className="text-sm text-gray-400 hover:text-gray-600">닫기</button>
             </div>
             <PriceReportForm clinicId={clinic.clinic_id} onSuccess={handleFormSuccess} onCancel={() => setShowForm(false)} />
@@ -298,7 +298,7 @@ export default function ClinicDetailPage() {
               onClick={() => { setShowForm(true); setSubmitted(false); }}
               className="w-full border-2 border-dashed border-blue-300 hover:border-blue-500 text-blue-500 hover:text-blue-600 font-medium py-3 rounded-xl text-sm transition"
             >
-              + 내 경험 제보하기
+              + 내 경험 공유하기
             </button>
           )
         )}
