@@ -179,7 +179,7 @@ function ClinicsPageContent() {
   }, [searchParams, router]);
 
   return (
-    <div className="px-3">
+    <div className="px-2">
       {/* 탭 */}
       <div className="flex rounded-[40px] bg-white p-1 mb-4" style={{boxShadow: '0 4px 20px rgba(99,102,241,0.08)'}}>
         {(["nearby", "region"] as Tab[]).map((t) => (
@@ -300,7 +300,7 @@ function ClinicsPageContent() {
       {/* 검색 + 필터 */}
       {(tab === "region" || (tab === "nearby" && userPos)) && (
         <div className="mb-4 space-y-3">
-          <div className="flex flex-row items-center gap-3">
+          <div className="flex flex-row items-center gap-2">
             <input
               type="text"
               placeholder="검색"
