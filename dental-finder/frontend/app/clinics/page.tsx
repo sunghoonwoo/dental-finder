@@ -300,13 +300,13 @@ function ClinicsPageContent() {
       {/* 검색 + 필터 */}
       {(tab === "region" || (tab === "nearby" && userPos)) && (
         <div className="mb-4 space-y-3">
-          <div className="flex gap-3">
+          <div className="flex flex-row items-center gap-3">
             <input
               type="text"
-              placeholder="치과명 검색"
+              placeholder="검색"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              className="flex-1 border-0 bg-white rounded-[40px] px-5 py-3 text-base focus:outline-none focus:ring-2 focus:ring-[#818CF8] placeholder:text-gray-400"
+              className="flex-1 min-w-0 border-0 bg-white rounded-[40px] px-5 py-3 text-base focus:outline-none focus:ring-2 focus:ring-[#818CF8] placeholder:text-gray-400"
               style={{boxShadow: '0 4px 20px rgba(99,102,241,0.08)'}}
             />
             <button
@@ -315,7 +315,7 @@ function ClinicsPageContent() {
                 setPriceReportOnly(newValue);
                 updateURL({ reportOnly: newValue ? "true" : "", page: "" });
               }}
-              className={`flex items-center justify-center gap-2 px-5 py-3 rounded-[40px] text-sm font-semibold border-0 transition whitespace-nowrap ${
+              className={`flex-shrink-0 flex items-center justify-center gap-2 px-5 py-3 rounded-[40px] text-sm font-semibold border-0 transition whitespace-nowrap ${
                 priceReportOnly 
                   ? "bg-[#FFB74D] text-white" 
                   : "bg-white text-[#FF9800] hover:bg-orange-50"
