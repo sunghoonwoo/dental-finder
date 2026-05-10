@@ -290,7 +290,7 @@ export default function ClinicDetailPage() {
               <h3 className="font-semibold text-gray-800">경험 제보하기</h3>
               <button onClick={() => setShowForm(false)} className="text-sm text-gray-400 hover:text-gray-600">닫기</button>
             </div>
-            <PriceReportForm clinicId={clinic.clinic_id} onSuccess={handleFormSuccess} />
+            <PriceReportForm clinicId={clinic.clinic_id} onSuccess={handleFormSuccess} onCancel={() => setShowForm(false)} />
           </div>
         ) : (
           !editingReport && (
