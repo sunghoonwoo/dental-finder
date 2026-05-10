@@ -181,7 +181,7 @@ function ClinicsPageContent() {
   return (
     <div className="px-4 md:px-8">
       {/* 탭 */}
-      <div className="flex rounded-[40px] bg-white p-1 mb-6" style={{boxShadow: '0 4px 20px rgba(99,102,241,0.08)'}}>
+      <div className="flex rounded-[40px] bg-white p-1 mb-4" style={{boxShadow: '0 4px 20px rgba(99,102,241,0.08)'}}>
         {(["nearby", "region"] as Tab[]).map((t) => (
           <button
             key={t}
@@ -257,7 +257,7 @@ function ClinicsPageContent() {
 
       {/* 지도 + 통합 검색 버튼 (nearby탭, 위치 있음) */}
       {tab === "nearby" && userPos && (
-        <div className="mb-6 relative" style={{ height: '35vh' }}>
+        <div className="mb-4 relative" style={{ height: '35vh' }}>
           <div className="rounded-[32px] overflow-hidden h-full" style={{boxShadow: '0 8px 30px rgba(0,0,0,0.04)'}}>
             <NearbyMap
               ref={mapRef}
