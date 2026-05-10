@@ -32,19 +32,14 @@ function ClinicsPageContent() {
 
   const [priceReportOnly, setPriceReportOnly] = useState(() => searchParams.get("reportOnly") === "true");
   const [page, setPage] = useState(0);
-  const [mapBounds, setMapBounds] = useState<{ sw: { lat: number; lng: number }; ne: { lat: number; lng: number } } | null>(null);
-
-  // Sync map bounds whenever map moves
-  const handleBoundsChange = useCallback((bounds: { sw: { lat: number; lng: number }; ne: { lat: number; lng: number } }) => {
-    setMapBounds(bounds);
-  }, []);
+  const [searchBounds, setSearchBounds] = useState<{ sw: { lat: number; lng: number }; ne: { lat: number; lng: number } } | null>(null);
   const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null);
   const mapRef = useRef<NearbyMapHandle>(null);
 
   const effectiveCity = city === "전국" ? "" : city;
 
   const { clinics, loading, pagedClinics } = useClinics({
-    tab, userPos, city: effectiveCity, district, search, page, priceReportOnly, bounds: tab === "nearby" ? mapBounds : null
+    tab, userPos, city: effectiveCity, district, search, page, priceReportOnly, bounds: tab === "nearby" ? searchBounds : null
   });
 
   // URL 동기화
@@ -123,16 +118,14 @@ function ClinicsPageContent() {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const location = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        // Update userPos but DON'T reset mapBounds - keep current map view
         setUserPos(location);
         setGeoLoading(false);
         try { localStorage.setItem(LOCATION_CACHE_KEY, JSON.stringify({ ...location, ts: Date.now() })); } catch {}
         setTimeout(() => {
           if (mapRef.current) {
             mapRef.current.panTo(location.lat, location.lng);
-            // Update mapBounds after panning to new location
             const bounds = mapRef.current.getBounds();
-            if (bounds) setMapBounds(bounds);
+            if (bounds) setSearchBounds(bounds);
           }
         }, 100);
       },
@@ -149,12 +142,12 @@ function ClinicsPageContent() {
     if (!map) return;
     const bounds = map.getBounds();
     if (bounds) {
-      setMapBounds(bounds);
+      setSearchBounds(bounds);
     } else {
       const center = map.getCenter();
       if (center) {
         const delta = 0.045;
-        setMapBounds({
+        setSearchBounds({
           sw: { lat: center.lat - delta, lng: center.lng - delta },
           ne: { lat: center.lat + delta, lng: center.lng + delta },
         });
@@ -180,6 +173,9 @@ function ClinicsPageContent() {
 
   return (
     <div className="px-2">
+      {/* 로딩 바 - fixed at top of screen */}
+      <div className={`fixed top-0 left-0 right-0 z-[100] h-[3px] bg-[#6366F1] transition-opacity duration-200 ${loading ? "opacity-100" : "opacity-0 pointer-events-none"}`} />
+
       {/* 탭 */}
       <div className="flex rounded-[40px] bg-white p-1 mb-4" style={{boxShadow: '0 4px 20px rgba(99,102,241,0.08)'}}>
         {(["nearby", "region"] as Tab[]).map((t) => (
@@ -272,7 +268,6 @@ function ClinicsPageContent() {
               selectedId={selectedMarkerId}
               onSelect={(id) => setSelectedMarkerId((prev) => prev === id ? null : id)}
               onDoubleClick={(id) => router.push(`/clinics/${id}`)}
-              onBoundsChange={handleBoundsChange}
             />
           </div>
           {/* 통합 검색 버튼 - 지도 위에 고정 */}
@@ -306,7 +301,7 @@ function ClinicsPageContent() {
       {/* 검색 + 필터 */}
       {(tab === "region" || (tab === "nearby" && userPos)) && (
         <div className="mb-4 space-y-3">
-          <div className="flex flex-row items-center gap-2">
+          <div className="flex flex-row items-center gap-2 h-[56px]">
             <input
               type="text"
               placeholder="검색"

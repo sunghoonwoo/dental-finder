@@ -34,11 +34,11 @@ export default function HospitalList({
     if (pagedClinics.length > 0) onPageChange(page + 1);
   }, [page, pagedClinics, onPageChange]);
 
-  if (loading) {
-    return <div className="text-center text-[14px] text-gray-400 py-10">불러오는 중...</div>;
+  if (loading && pagedClinics.length === 0 && clinics.length === 0) {
+    return null;
   }
 
-  if (pagedClinics.length === 0 && clinics.length === 0) {
+  if (!loading && pagedClinics.length === 0 && clinics.length === 0) {
     return <div className="text-center text-[14px] text-gray-400 py-10">검색 결과가 없습니다</div>;
   }
 
