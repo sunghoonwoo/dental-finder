@@ -11,16 +11,34 @@ export async function POST(req: NextRequest) {
     const { reportId } = await req.json();
     console.log("[requires-pin] reportId:", reportId);
 
-    const { data: requiresPin, error } = await supabase.rpc("report_requires_pin", {
+    const { data: rpcResult, error: rpcError } = await supabase.rpc("report_requires_pin", {
       p_report_id: reportId,
     });
 
-    if (error) {
-      console.error("[requires-pin] RPC error:", error.message);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+    console.log("[requires-pin] RPC result:", rpcResult, "error:", rpcError?.message);
+
+    if (rpcError) {
+      console.warn("[requires-pin] RPC failed, falling back to direct query:", rpcError.message);
     }
-    console.log("[requires-pin] result:", requiresPin);
-    return NextResponse.json({ requiresPin: !!requiresPin });
+
+    if (rpcError) {
+      const { data: row, error: dbError } = await supabase
+        .from("user_price_reports")
+        .select("pin")
+        .eq("report_id", reportId)
+        .maybeSingle();
+
+      console.log("[requires-pin] Direct query — row:", JSON.stringify(row), "dbError:", dbError?.message);
+
+      if (dbError) {
+        return NextResponse.json({ error: dbError.message }, { status: 500 });
+      }
+
+      const requires = row?.pin != null && row.pin !== "";
+      return NextResponse.json({ requiresPin: requires });
+    }
+
+    return NextResponse.json({ requiresPin: !!rpcResult });
   } catch (e) {
     console.error("[API POST /reports/requires-pin]", e);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

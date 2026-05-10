@@ -143,7 +143,7 @@ export const api = {
 
   updateReport(body: {
     reportId: string;
-    treatmentId: number;
+    treatmentIds: number[];
     price: number | null;
     visitDate: string | null;
     extraRecommended: boolean;
@@ -169,5 +169,20 @@ export const api = {
 
   fetchReportSummaries(clinicIds: string[]): Promise<{ reports: { clinic_id: string; report_id: string; visit_id: string | null; extra_recommended: boolean }[] }> {
     return get("/api/reports/summaries", { ids: clinicIds.join(",") });
+  },
+
+  updateReview(body: {
+    reportId: string;
+    pin: string;
+    treatmentIds: number[];
+    price: number | null;
+    visitDate: string | null;
+    extraRecommended: boolean;
+    extraNote: string | null;
+    reviewText: string | null;
+    friendlinessScore: number | null;
+    nickname: string | null;
+  }): Promise<{ success: boolean }> {
+    return post<{ success: boolean }>("/api/reviews/update", body);
   },
 };

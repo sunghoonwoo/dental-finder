@@ -6,7 +6,7 @@ import { api, TreatmentType } from "@/lib/api-client";
 export type ReportFormValues = {
   reportId?: string;
   visitId?: string;
-  treatmentId: number;
+  treatmentIds: number[];
   price: string;
   visitDate: string;
   extraRecommended: boolean | null;
@@ -14,6 +14,7 @@ export type ReportFormValues = {
   reviewText: string;
   friendlinessScore: number | null;
   nickname: string;
+  pin?: string;
 };
 
 type Props = {
@@ -38,7 +39,7 @@ export default function PriceReportForm({ clinicId, initialValues, onSuccess, on
 
   const [treatments, setTreatments] = useState<TreatmentType[]>([]);
   const [treatmentIds, setTreatmentIds] = useState<number[]>(
-    initialValues?.treatmentId ? [initialValues.treatmentId] : []
+    initialValues?.treatmentIds ?? []
   );
   const [price, setPrice] = useState(initialValues?.price ?? "");
   const [visitDate, setVisitDate] = useState(initialValues?.visitDate ?? "");
@@ -77,9 +78,10 @@ export default function PriceReportForm({ clinicId, initialValues, onSuccess, on
 
     if (isEdit && initialValues?.reportId) {
       try {
-        await api.updateReport({
+        await api.updateReview({
           reportId: initialValues.reportId,
-          treatmentId: treatmentIds[0],
+          pin: initialValues.pin ?? "",
+          treatmentIds,
           price: parsedPrice,
           visitDate: visitDate || null,
           extraRecommended: extraRecommended!,
@@ -130,15 +132,11 @@ export default function PriceReportForm({ clinicId, initialValues, onSuccess, on
               key={t.treatment_id}
               type="button"
               onClick={() => {
-                if (isEdit) {
-                  setTreatmentIds([t.treatment_id]);
-                } else {
-                  setTreatmentIds((prev) =>
-                    prev.includes(t.treatment_id)
-                      ? prev.filter((id) => id !== t.treatment_id)
-                      : [...prev, t.treatment_id]
-                  );
-                }
+                setTreatmentIds((prev) =>
+                  prev.includes(t.treatment_id)
+                    ? prev.filter((id) => id !== t.treatment_id)
+                    : [...prev, t.treatment_id]
+                );
               }}
               className={`px-3 py-1.5 rounded-full text-sm border transition ${
                 treatmentIds.includes(t.treatment_id)

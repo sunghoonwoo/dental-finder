@@ -40,8 +40,14 @@ export default function ClinicDetailPage() {
   function handleFormSuccess() {
     setShowForm(false);
     setEditingReport(null);
+    setPinState(null);
+    setPinInput("");
+    setPinError(false);
+    setPinErrorMessage("");
+    setPinVerifying(false);
     setSubmitted(true);
     loadData();
+    router.refresh();
   }
 
   async function openPinPrompt(reportId: string, action: "edit" | "delete") {
@@ -83,17 +89,29 @@ export default function ClinicDetailPage() {
         return;
       }
       setPinState(null);
+      setPinInput("");
+      setPinError(false);
+      setPinErrorMessage("");
       setPinVerifying(false);
       loadData();
     } else {
       const { ok } = await api.verifyPin(pinState.reportId, pinInput);
       if (!ok) { setPinError(true); setPinVerifying(false); return; }
+      const enteredPin = pinInput;
+      setPinInput("");
+      setPinError(false);
+      setPinErrorMessage("");
       const report = clinic?.userReports.find((r) => r.report_id === pinState.reportId);
       if (report) {
+        const visitGroup = report.visit_id
+          ? clinic?.userReports.filter((r) => r.visit_id === report.visit_id)
+          : [report];
+        const treatmentIds = visitGroup?.map((r) => r.treatment_id).filter((id): id is number => id != null) ?? [];
         setEditingReport({
           reportId: report.report_id,
           visitId: report.visit_id ?? undefined,
-          treatmentId: report.treatment_id,
+          treatmentIds,
+          pin: enteredPin,
           price: report.price != null ? report.price.toLocaleString() : "",
           visitDate: report.visit_date ?? "",
           extraRecommended: report.extra_recommended,
