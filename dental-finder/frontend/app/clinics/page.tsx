@@ -247,10 +247,13 @@ function ClinicsPageContent() {
       {tab === "nearby" && !userPos && !geoError && (
         <div className="flex flex-col items-center py-16 gap-4">
           <div className="text-gray-400 text-sm font-medium">내 주변 치과를 찾으려면 위치 권한이 필요합니다</div>
-          <button onClick={handleSearchNearMe} disabled={geoLoading} className="flex items-center gap-2 bg-gradient-to-r from-[#818CF8] to-[#6366F1] hover:from-[#6366F1] hover:to-[#4F46E5] text-white font-semibold px-8 py-3.5 rounded-[40px] text-sm transition disabled:opacity-50 whitespace-nowrap"
+          <button onClick={handleSearchNearMe} disabled={geoLoading} className="relative flex items-center justify-center gap-2 bg-gradient-to-r from-[#818CF8] to-[#6366F1] hover:from-[#6366F1] hover:to-[#4F46E5] text-white font-semibold px-8 py-3.5 rounded-[40px] text-sm transition disabled:opacity-50 whitespace-nowrap min-w-[160px]"
             style={{boxShadow: '0 8px 25px rgba(99,102,241,0.25)'}}
           >
-            {geoLoading ? "위치를 가져오는 중..." : "내 위치 사용하기"}
+            <span className={geoLoading ? "invisible" : ""}>내 위치 사용하기</span>
+            {geoLoading && (
+              <span className="absolute inset-0 flex items-center justify-center">위치를 가져오는 중...</span>
+            )}
           </button>
         </div>
       )}
@@ -278,16 +281,19 @@ function ClinicsPageContent() {
               <button
                 onClick={handleSearchNearMe}
                 disabled={geoLoading}
-                className="flex items-center gap-1.5 px-5 py-2.5 bg-white/95 backdrop-blur-md text-[#6366F1] font-semibold rounded-[32px] text-xs hover:bg-white transition-all duration-200 whitespace-nowrap"
+                className="flex items-center justify-center gap-1.5 min-w-[88px] h-10 px-5 bg-white/95 backdrop-blur-md text-[#6366F1] font-semibold rounded-[32px] text-xs hover:bg-white transition-all duration-200 whitespace-nowrap relative"
                 style={{boxShadow: '0 4px 20px rgba(99,102,241,0.15)'}}
               >
-                {geoLoading ? "위치 중..." : "내 위치"}
+                <span className={geoLoading ? "invisible" : ""}>내 위치</span>
+                {geoLoading && (
+                  <span className="absolute inset-0 flex items-center justify-center">위치 중...</span>
+                )}
               </button>
             </div>
             <div className="pointer-events-auto">
               <button
                 onClick={handleSearchInThisArea}
-                className="flex items-center gap-1.5 px-5 py-2.5 bg-white/95 backdrop-blur-md text-[#6366F1] font-semibold rounded-[32px] text-xs hover:bg-white transition-all duration-200 whitespace-nowrap"
+                className="flex items-center justify-center gap-1.5 min-w-[88px] h-10 px-5 bg-white/95 backdrop-blur-md text-[#6366F1] font-semibold rounded-[32px] text-xs hover:bg-white transition-all duration-200 whitespace-nowrap"
                 style={{boxShadow: '0 4px 20px rgba(99,102,241,0.15)'}}
               >
                 이 지역
